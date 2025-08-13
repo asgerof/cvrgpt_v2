@@ -1,0 +1,27 @@
+HOW TO APPLY THIS BUNDLE
+
+1) Unzip your project (if not already) and open it in your editor.
+2) Download and unzip `onboarding_bundle.zip` next to your repo.
+3) Copy the contents of `proposed_changes/` into your repo root, preserving folders:
+   - Add `server/run.ps1` and `frontend/run.ps1`
+   - Add `server/src/cvrgpt_server/models.py`
+   - Add `server/src/cvrgpt_server/errors.py`
+   - Add `server/src/cvrgpt_server/metrics.py` (then import router/middleware in `api.py`)
+   - Add `.editorconfig`, `.pre-commit-config.yaml`, and `ruff.toml` to the repo root
+   - Add `README-ADDENDUM.md` to the root
+4) Wire-up metrics in `server/src/cvrgpt_server/api.py`:
+   ```py
+   # after you create app = FastAPI(...)
+   from cvrgpt_server import metrics
+   app.middleware("http")(metrics.timing_middleware)
+   app.include_router(metrics.router)
+   ```
+5) Optional: install pre-commit
+   ```powershell
+   cd server
+   .\.venv\Scripts\Activate.ps1
+   pip install pre-commit ruff black
+   pre-commit install
+   ```
+
+Timestamp: 2025-08-13T19:21:38.176355Z

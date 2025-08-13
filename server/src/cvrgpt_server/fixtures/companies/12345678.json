@@ -1,0 +1,27 @@
+{
+  "cvr": "12345678",
+  "name": "Eksempel ApS",
+  "status": "NORMAL",
+  "industry": {
+    "code": "62010",
+    "text": "Computer programming activities"
+  },
+  "addresses": [
+    {
+      "type": "business",
+      "street": "Eksempelvej 1",
+      "city": "København",
+      "zip": "2100"
+    }
+  ],
+  "officers": [
+    {
+      "role": "Director",
+      "name": "Anna Hansen"
+    },
+    {
+      "role": "CEO",
+      "name": "Bo Jensen"
+    }
+  ]
+}

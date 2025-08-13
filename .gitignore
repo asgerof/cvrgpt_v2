@@ -1,0 +1,29 @@
+
+# Node
+frontend/.next
+frontend/node_modules
+frontend/.turbo
+*.log
+
+# Python
+.venv/
+*/.venv/
+**/.venv/
+server/.venv
+server/.pytest_cache
+server/.mypy_cache
+server/.coverage
+server/dist
+server/build
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+*.env
+.env

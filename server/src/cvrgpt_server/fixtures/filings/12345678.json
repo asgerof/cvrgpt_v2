@@ -1,0 +1,64 @@
+{
+  "filings": [
+    {
+      "id": "regnskab-2024",
+      "type": "annual_report",
+      "date": "2025-04-15",
+      "url": "https://example.org/ixbrl/12345678/2024"
+    },
+    {
+      "id": "regnskab-2023",
+      "type": "annual_report",
+      "date": "2024-04-10",
+      "url": "https://example.org/ixbrl/12345678/2023"
+    }
+  ],
+  "latest_accounts": {
+    "current": {
+      "period": {
+        "start": "2024-01-01",
+        "end": "2024-12-31",
+        "year": 2024
+      },
+      "pl": {
+        "revenue": 12000000.0,
+        "ebit": 1800000.0
+      },
+      "bs": {
+        "assets": 7000000.0,
+        "equity": 3200000.0,
+        "current_assets": 2400000.0,
+        "current_liabilities": 1200000.0
+      },
+      "citations": [
+        {
+          "type": "ixbrl",
+          "url": "https://example.org/ixbrl/12345678/2024"
+        }
+      ]
+    },
+    "previous": {
+      "period": {
+        "start": "2023-01-01",
+        "end": "2023-12-31",
+        "year": 2023
+      },
+      "pl": {
+        "revenue": 10000000.0,
+        "ebit": 1200000.0
+      },
+      "bs": {
+        "assets": 6000000.0,
+        "equity": 3000000.0,
+        "current_assets": 2000000.0,
+        "current_liabilities": 1100000.0
+      },
+      "citations": [
+        {
+          "type": "ixbrl",
+          "url": "https://example.org/ixbrl/12345678/2023"
+        }
+      ]
+    }
+  }
+}
