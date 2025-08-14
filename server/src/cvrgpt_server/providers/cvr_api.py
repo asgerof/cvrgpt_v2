@@ -1,7 +1,7 @@
 from .base import Provider
 import httpx
 from cachetools import TTLCache
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlencode
 
 class CVRApiProvider(Provider):
@@ -23,32 +23,51 @@ class CVRApiProvider(Provider):
             data = self._cache[key]
             data["x_cache"] = "hit"
             return data
-        params = {"q": q, "limit": limit}
-        url = f"{self.base_url}/search?{urlencode(params)}"
-        headers: Dict[str, str] = {}
+        # CVR Indeks: POST {base}/virksomhed/_search with ES-like body
+        url = f"{self.base_url.rstrip('/')}/virksomhed/_search"
+        headers: Dict[str, str] = {"Content-Type": "application/json"}
         if self.token:
             headers["Authorization"] = f"Bearer {self.token}"
-        try:
-            r = await self._client.get(url, headers=headers)
-            r.raise_for_status()
-            payload = r.json()
-            items = [
-                {
-                    "cvr": str(it.get("cvr") or it.get("id") or ""),
-                    "name": it.get("name") or it.get("company_name") or "",
-                    "status": it.get("status"),
+        is_cvr = q.isdigit() and len(q) == 8
+        body: Dict[str, Any] = {
+            "size": max(1, min(int(limit), 50)),
+            "query": {
+                "bool": {
+                    "should": (
+                        [{"term": {"Vrvirksomhed.cvrNummer": q}}]
+                        if is_cvr
+                        else [
+                            {"match_phrase_prefix": {"Vrvirksomhed.virksomhedMetadata.nyesteNavn.navn": q}},
+                            {"match": {"Vrvirksomhed.virksomhedMetadata.nyesteNavn.navn": {"query": q, "operator": "and"}}},
+                        ]
+                    ),
+                    "minimum_should_match": 1,
                 }
-                for it in payload.get("items", [])
-            ][:limit]
-            data = {"items": items, "citations": [{"source": "api", "url": url}]}
+            },
+            "_source": True,
+        }
+        try:
+            r = await self._client.post(url, headers=headers, json=body)
+            r.raise_for_status()
+            payload = r.json() or {}
+            hits = ((payload.get("hits") or {}).get("hits")) or []
+            items: List[Dict[str, Any]] = []
+            for h in hits:
+                src = h.get("_source") or {}
+                v = src.get("Vrvirksomhed") or src
+                cvr = str(v.get("cvrNummer") or "")
+                md = v.get("virksomhedMetadata") or {}
+                newest_name = (md.get("nyesteNavn") or {}).get("navn")
+                name = newest_name or (v.get("navne") or [{}])[0].get("navn") if isinstance(v.get("navne"), list) else newest_name
+                status = (v.get("virksomhedsstatus") or {}).get("status") or md.get("sammensatStatus")
+                if cvr and name:
+                    items.append({"cvr": cvr, "name": name, "status": status})
+            data = {"items": items[:limit], "citations": [{"source": "api", "url": url}]}
             self._cache[key] = data
-            data_out = dict(data)
-            data_out["x_cache"] = "miss"
-            return data_out
+            out = dict(data); out["x_cache"] = "miss"; return out
         except httpx.HTTPStatusError as e:
             raise httpx.HTTPStatusError(f"Upstream search failed: {e.response.text}", request=e.request, response=e.response)
         except Exception as e:
-            # Let the API layer translate this into 502
             raise RuntimeError(f"search_companies failed: {e}")
 
     async def get_company(self, cvr: str) -> dict:
@@ -57,32 +76,64 @@ class CVRApiProvider(Provider):
             data = self._cache[key]
             data["x_cache"] = "hit"
             return data
-        url = f"{self.base_url}/company/{cvr}"
-        headers: Dict[str, str] = {}
+        url = f"{self.base_url.rstrip('/')}/virksomhed/_search"
+        headers: Dict[str, str] = {"Content-Type": "application/json"}
         if self.token:
             headers["Authorization"] = f"Bearer {self.token}"
+        body = {
+            "size": 1,
+            "query": {"bool": {"must": [{"term": {"Vrvirksomhed.cvrNummer": str(cvr)}}]}},
+            "_source": True,
+        }
         try:
-            r = await self._client.get(url, headers=headers)
-            if r.status_code == 404:
-                raise FileNotFoundError(f"Company {cvr} not found")
+            r = await self._client.post(url, headers=headers, json=body)
             r.raise_for_status()
-            src = r.json() or {}
+            payload = r.json() or {}
+            hits = ((payload.get("hits") or {}).get("hits")) or []
+            if not hits:
+                raise FileNotFoundError(f"Company {cvr} not found")
+            src = (hits[0] or {}).get("_source") or {}
+            v = src.get("Vrvirksomhed") or src
+            md = v.get("virksomhedMetadata") or {}
+            # Normalize fields
+            name: Optional[str] = (md.get("nyesteNavn") or {}).get("navn")
+            if not name:
+                navne = v.get("navne")
+                if isinstance(navne, list) and navne:
+                    name = (navne[0] or {}).get("navn")
+            status = (v.get("virksomhedsstatus") or {}).get("status") or md.get("sammensatStatus")
+            hb = md.get("nyesteHovedbranche") or (v.get("hovedbranche") or {})
+            industry = {
+                "code": hb.get("branchekode") if isinstance(hb, dict) else None,
+                "text": hb.get("branchetekst") if isinstance(hb, dict) else None,
+            }
+            addr = md.get("nyesteBeliggenhedsadresse") or {}
+            def build_street(a: Dict[str, Any]) -> str:
+                vej = a.get("vejnavn") or ""
+                nr = str(a.get("husnummerFra") or "").strip()
+                bogstav = (a.get("bogstavFra") or "").strip()
+                comp = " ".join(x for x in [nr + (bogstav or "")] if x)
+                return (vej + (" " + comp if comp else "")).strip()
+            addresses = []
+            if addr:
+                addresses.append({
+                    "type": "business",
+                    "street": build_street(addr),
+                    "city": addr.get("postdistrikt") or addr.get("bynavn"),
+                    "zip": str(addr.get("postnummer") or ""),
+                    "country": addr.get("landekode"),
+                })
             company = {
-                "cvr": str(src.get("cvr") or src.get("id") or cvr),
-                "name": src.get("name") or src.get("company_name") or "",
-                "status": src.get("status"),
-                "industry": {
-                    "code": (src.get("industry") or {}).get("code") if isinstance(src.get("industry"), dict) else src.get("industry_code"),
-                    "text": (src.get("industry") or {}).get("text") if isinstance(src.get("industry"), dict) else src.get("industry_text"),
-                },
-                "addresses": src.get("addresses") or [],
-                "officers": src.get("officers") or [],
+                "cvr": str(v.get("cvrNummer") or cvr),
+                "name": name or "",
+                "status": status,
+                "industry": industry,
+                "addresses": addresses,
+                "officers": [],
             }
             data = {"company": company, "citations": [{"source": "api", "url": url}]}
             self._cache[key] = data
-            data_out = dict(data)
-            data_out["x_cache"] = "miss"
-            return data_out
+            out = dict(data); out["x_cache"] = "miss"; return out
         except httpx.HTTPStatusError as e:
             raise httpx.HTTPStatusError(f"Upstream company failed: {e.response.text}", request=e.request, response=e.response)
         except FileNotFoundError:

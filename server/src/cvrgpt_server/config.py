@@ -1,4 +1,6 @@
 from pydantic import BaseModel
+from dotenv import load_dotenv
+import pathlib
 import os
 
 class Settings(BaseModel):
@@ -13,5 +15,10 @@ class Settings(BaseModel):
 
     def cors_origins(self) -> list[str]:
         return [o.strip() for o in self.allowed_origins.split(",") if o.strip()]
+
+# Load .env files early (.env.local then .env)
+root = pathlib.Path(__file__).parents[3] if len(pathlib.Path(__file__).parents) >= 3 else pathlib.Path.cwd()
+load_dotenv(dotenv_path=root / "server" / ".env.local")
+load_dotenv(dotenv_path=root / "server" / ".env")
 
 settings = Settings()

@@ -5,6 +5,8 @@ from .config import settings
 from .logging import setup_logging
 from .providers.fixtures import FixtureProvider
 from .providers.cvr_api import CVRApiProvider
+from .providers.regnskab import RegnskabProvider
+from .providers.base import CompositeProvider
 from .services.compare import compare_accounts, narrate_compare
 from .mcp_server import mcp
 from . import models
@@ -24,7 +26,9 @@ def get_provider():
     elif settings.provider == "cvr_api":
         if not settings.api_base_url:
             raise RuntimeError("CVR API requires CVRGPT_API_BASE_URL")
-        _provider_instance = CVRApiProvider(settings.api_base_url, settings.api_key, settings.api_user, settings.api_password)
+        core = CVRApiProvider(settings.api_base_url, settings.api_key, settings.api_user, settings.api_password)
+        filings = RegnskabProvider()
+        _provider_instance = CompositeProvider(core=core, filings_provider=filings)
     else:
         raise RuntimeError(f"Unknown provider: {settings.provider}")
     return _provider_instance

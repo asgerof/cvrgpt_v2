@@ -9,3 +9,21 @@ class Provider(ABC):
     async def list_filings(self, cvr: str, limit: int = 10) -> dict: ...
     @abstractmethod
     async def get_latest_accounts(self, cvr: str) -> dict: ...
+
+
+class CompositeProvider(Provider):
+    def __init__(self, core: Provider, filings_provider: Provider | None = None):
+        self.core = core
+        self.filings_provider = filings_provider or core
+
+    async def search_companies(self, q: str, limit: int = 10) -> dict:
+        return await self.core.search_companies(q, limit)
+
+    async def get_company(self, cvr: str) -> dict:
+        return await self.core.get_company(cvr)
+
+    async def list_filings(self, cvr: str, limit: int = 10) -> dict:
+        return await self.filings_provider.list_filings(cvr, limit)
+
+    async def get_latest_accounts(self, cvr: str) -> dict:
+        return await self.filings_provider.get_latest_accounts(cvr)
