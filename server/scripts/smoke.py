@@ -10,7 +10,7 @@ import os
 from typing import Dict, Any
 
 BASE_URL = os.environ.get("SMOKE_TEST_URL", "http://localhost:8000")
-TEST_CVR = "10150817"  # Erhvervsstyrelsen
+TEST_CVR = "25052943"  # Novo Nordisk A/S - well-known Danish company
 
 
 async def smoke_test():

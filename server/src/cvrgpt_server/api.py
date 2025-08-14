@@ -10,7 +10,7 @@ from .providers.base import CompositeProvider
 from .services.compare import compare_accounts, narrate_compare, compare_accounts_snapshots
 from .mcp_server import mcp
 from . import models
-from .errors import ErrorPayload
+from .errors import ErrorPayload, ErrorCode
 import uuid
 import csv
 import io
@@ -24,7 +24,9 @@ def get_provider():
     if _provider_instance is not None:
         return _provider_instance
     if settings.provider == "fixtures":
-        _provider_instance = FixtureProvider()
+        # For fixtures, use a composite with fixture provider for both core and filings
+        fixture_provider = FixtureProvider()
+        _provider_instance = CompositeProvider(core=fixture_provider, filings_provider=fixture_provider)
     elif settings.provider == "cvr_api":
         if not settings.api_base_url:
             raise RuntimeError("CVR API requires CVRGPT_API_BASE_URL")
@@ -96,9 +98,16 @@ async def company(cvr: str, response: Response = None):
     try:
         data = await prov.get_company(cvr)
     except FileNotFoundError:
-        raise HTTPException(404, "Not found")
+        raise HTTPException(status_code=404, detail=ErrorPayload(
+            code=ErrorCode.NOT_FOUND, 
+            message=f"Company {cvr} not found"
+        ).model_dump())
     except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        log.error(f"Company lookup failed for {cvr}: {e}")
+        raise HTTPException(status_code=502, detail=ErrorPayload(
+            code=ErrorCode.UPSTREAM_ERROR,
+            message="Company lookup failed"
+        ).model_dump())
     x_cache = data.pop("x_cache", None)
     if response is not None and x_cache:
         response.headers["X-Cache"] = x_cache
