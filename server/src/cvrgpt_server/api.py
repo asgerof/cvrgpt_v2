@@ -22,9 +22,9 @@ def get_provider():
     if settings.provider == "fixtures":
         _provider_instance = FixtureProvider()
     elif settings.provider == "cvr_api":
-        if not settings.api_base_url or not settings.api_key:
-            raise RuntimeError("CVR API requires CVRGPT_API_BASE_URL + CVRGPT_API_KEY")
-        _provider_instance = CVRApiProvider(settings.api_base_url, settings.api_key)
+        if not settings.api_base_url:
+            raise RuntimeError("CVR API requires CVRGPT_API_BASE_URL")
+        _provider_instance = CVRApiProvider(settings.api_base_url, settings.api_key, settings.api_user, settings.api_password)
     else:
         raise RuntimeError(f"Unknown provider: {settings.provider}")
     return _provider_instance
