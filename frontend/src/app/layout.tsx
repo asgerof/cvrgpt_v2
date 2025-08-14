@@ -4,6 +4,7 @@ import './globals.css'
 import type { Metadata } from 'next'
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
+import { ErrorBoundary } from "../components/ErrorBoundary";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
@@ -11,9 +12,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className="min-h-screen antialiased">
-        <QueryClientProvider client={queryClient}>
-          {children}
-        </QueryClientProvider>
+        <ErrorBoundary>
+          <QueryClientProvider client={queryClient}>
+            {children}
+          </QueryClientProvider>
+        </ErrorBoundary>
       </body>
     </html>
   )

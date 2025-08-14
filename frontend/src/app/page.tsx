@@ -29,8 +29,29 @@ export default function Home() {
           className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
         
-        {searchLoading && <p className="mt-2 text-gray-500">Searching...</p>}
-        {searchError && <p className="mt-2 text-red-500">Error: {searchError.message}</p>}
+        {searchLoading && (
+          <div className="mt-2 flex items-center text-gray-500" role="status" aria-live="polite">
+            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Searching...
+          </div>
+        )}
+        {searchError && (
+          <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md" role="alert">
+            <div className="flex">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <div className="ml-2">
+                <p className="text-sm text-red-700">
+                  <strong>Error:</strong> {searchError.message}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
         
         {companies && companies.length > 0 && (
           <div className="mt-4 space-y-2">
@@ -39,7 +60,8 @@ export default function Home() {
               <button
                 key={company.cvr}
                 onClick={() => setSelectedCompany(company)}
-                className="w-full text-left p-3 border border-gray-200 rounded hover:bg-gray-50 focus:bg-gray-50"
+                className="w-full text-left p-3 border border-gray-200 rounded hover:bg-gray-50 focus:bg-blue-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                aria-label={`Select ${company.name} for analysis`}
               >
                 <div className="font-medium">{company.name}</div>
                 <div className="text-sm text-gray-600">CVR: {company.cvr}</div>
@@ -57,8 +79,29 @@ export default function Home() {
             Analysis for {selectedCompany.name}
           </h2>
           
-          {compareLoading && <p className="text-gray-500">Loading comparison...</p>}
-          {compareError && <p className="text-red-500">Error: {compareError.message}</p>}
+          {compareLoading && (
+            <div className="flex items-center text-gray-500" role="status" aria-live="polite">
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Loading comparison...
+            </div>
+          )}
+          {compareError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-md" role="alert">
+              <div className="flex">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <div className="ml-2">
+                  <p className="text-sm text-red-700">
+                    <strong>Comparison Error:</strong> {compareError.message}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           
           {comparison && (
             <div className="bg-gray-50 p-6 rounded-lg">
