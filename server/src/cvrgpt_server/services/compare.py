@@ -1,5 +1,97 @@
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
+from ..models import AccountsSnapshot, AccountsDelta
+import datetime
 
+
+def compare_accounts_snapshots(current: Optional[AccountsSnapshot], previous: Optional[AccountsSnapshot]) -> Dict[str, Any]:
+    """Compare two AccountsSnapshot objects and return key changes with narrative."""
+    if not current or not previous:
+        return {
+            "current_period": getattr(current.period, "year", None) if current and current.period else None,
+            "previous_period": getattr(previous.period, "year", None) if previous and previous.period else None,
+            "key_changes": [],
+            "narrative": "Insufficient data for comparison.",
+            "sources": []
+        }
+    
+    # Key fields to compare
+    fields = [
+        ("revenue", "Revenue"),
+        ("ebit", "EBIT"),
+        ("net_income", "Net Income"),
+        ("assets", "Total Assets"),
+        ("equity", "Equity"),
+        ("cash", "Cash")
+    ]
+    
+    key_changes: List[AccountsDelta] = []
+    
+    for field_key, field_label in fields:
+        curr_val = getattr(current, field_key, None)
+        prev_val = getattr(previous, field_key, None)
+        
+        if curr_val is not None and prev_val is not None and prev_val != 0:
+            abs_change = curr_val - prev_val
+            pct_change = (abs_change / abs(prev_val)) * 100
+            
+            key_changes.append(AccountsDelta(
+                field=field_label,
+                current_value=curr_val,
+                previous_value=prev_val,
+                absolute_change=abs_change,
+                percentage_change=pct_change
+            ))
+    
+    # Sort by absolute percentage change (descending)
+    key_changes.sort(key=lambda x: abs(x.percentage_change or 0), reverse=True)
+    
+    # Generate narrative
+    narrative_parts = []
+    curr_period = str(current.period.year) if current.period and current.period.year else "current"
+    prev_period = str(previous.period.year) if previous.period and previous.period.year else "previous"
+    
+    if key_changes:
+        top_changes = key_changes[:3]  # Top 3 changes
+        for change in top_changes:
+            if change.percentage_change and abs(change.percentage_change) > 1:  # Only mention >1% changes
+                direction = "increased" if change.percentage_change > 0 else "decreased"
+                narrative_parts.append(
+                    f"{change.field} {direction} {abs(change.percentage_change):.1f}% "
+                    f"({format_currency(change.previous_value)} → {format_currency(change.current_value)})"
+                )
+    
+    narrative = f"Comparing {prev_period} to {curr_period}: " + "; ".join(narrative_parts) if narrative_parts else "No significant changes detected."
+    
+    # Collect all source anchors
+    sources = []
+    if current and current.source_anchors:
+        sources.extend(current.source_anchors)
+    if previous and previous.source_anchors:
+        sources.extend(previous.source_anchors)
+    
+    return {
+        "current_period": curr_period,
+        "previous_period": prev_period,
+        "key_changes": key_changes,
+        "narrative": narrative,
+        "sources": sources
+    }
+
+
+def format_currency(value: Optional[float]) -> str:
+    """Format currency values in millions/thousands."""
+    if value is None:
+        return "n/a"
+    
+    if abs(value) >= 1_000_000:
+        return f"{value/1_000_000:.1f}M DKK"
+    elif abs(value) >= 1_000:
+        return f"{value/1_000:.0f}K DKK"
+    else:
+        return f"{value:.0f} DKK"
+
+
+# Legacy functions for backward compatibility
 def compute_ratios(accounts: Dict[str, Any]) -> Dict[str, Optional[float]]:
     if not accounts:
         return {"margin": None, "solvency": None, "liquidity": None}

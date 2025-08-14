@@ -62,7 +62,7 @@ export default function Chat() {
         {answer && !loading && (
           <div className="space-y-6">
             <ProfileCard data={answer.profile.company} citations={answer.profile.citations} />
-            <CompareCard data={answer.cmp} />
+            <CompareCard data={answer.cmp} cvr={selected} />
             <FilingsCard filings={filings} />
           </div>
         )}
@@ -100,23 +100,98 @@ function DeltaPct({v}:{v:number|null|undefined}){
   return <span className={`text-xs px-2 py-0.5 rounded ${v>0?'bg-green-600/30':'bg-red-600/30'}`}>{sign}{(v*100).toFixed(1)}%</span>
 }
 
-function CompareCard({data}:{data:any}){
-  const comp = data?.comparison
-  if(!comp) return <div className="rounded-xl bg-black/20 p-4">No comparison available.</div>
-  const cur = comp.current || {}
-  const del = comp.delta || {}
+function CompareCard({data, cvr}:{data:any, cvr:string}){
+  const changes = data?.key_changes || []
+  const narrative = data?.narrative
+  const sources = data?.sources || []
+  
+  if(!changes.length && !narrative) return <div className="rounded-xl bg-black/20 p-4">No comparison available.</div>
+  
   return (
     <div className="rounded-xl bg-black/20 p-4">
-      <h2 className="text-xl font-semibold mb-1">Latest comparison</h2>
-      {data.narrative && <p className="opacity-90 mb-3 text-sm">{data.narrative}</p>}
-      <div className="grid md:grid-cols-3 gap-3 text-sm">
-        <Metric label="Margin" value={cur.margin==null?null:(cur.margin*100)} suffix="%" delta={del.margin} isPercent />
-        <Metric label="Solvency" value={cur.solvency==null?null:(cur.solvency*100)} suffix="%" delta={del.solvency} isPercent />
-        <Metric label="Liquidity" value={cur.liquidity} delta={del.liquidity} />
+      <div className="flex justify-between items-center mb-1">
+        <h2 className="text-xl font-semibold">Financial Comparison</h2>
+        {changes.length > 0 && (
+          <button 
+            onClick={() => downloadCSV(cvr)}
+            className="text-xs px-3 py-1 rounded bg-blue-600/30 hover:bg-blue-600/50 transition"
+          >
+            Export CSV
+          </button>
+        )}
       </div>
-      <Citations cites={data.citations || []} />
+      {data.current_period && data.previous_period && (
+        <p className="text-sm opacity-70 mb-2">
+          {data.previous_period} → {data.current_period}
+        </p>
+      )}
+      {narrative && <p className="opacity-90 mb-3 text-sm">{narrative}</p>}
+      
+      {changes.length > 0 && (
+        <div className="space-y-2 mb-3">
+          {changes.slice(0, 5).map((change: any, i: number) => (
+            <ChangeRow key={i} change={change} />
+          ))}
+        </div>
+      )}
+      
+      <Citations cites={sources} />
     </div>
   )
+}
+
+function ChangeRow({change}: {change: any}) {
+  const pctChange = change.percentage_change
+  const isPositive = pctChange > 0
+  const isSignificant = Math.abs(pctChange) > 1
+  
+  return (
+    <div className="flex justify-between items-center p-2 rounded bg-white/5">
+      <span className="font-medium text-sm">{change.field}</span>
+      <div className="text-right">
+        <div className="text-sm">
+          {formatCurrency(change.previous_value)} → {formatCurrency(change.current_value)}
+        </div>
+        {isSignificant && (
+          <div className={`text-xs ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+            {isPositive ? '+' : ''}{pctChange.toFixed(1)}%
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function formatCurrency(value: number | null): string {
+  if (value === null || value === undefined) return 'N/A'
+  
+  if (Math.abs(value) >= 1_000_000) {
+    return `${(value / 1_000_000).toFixed(1)}M`
+  } else if (Math.abs(value) >= 1_000) {
+    return `${(value / 1_000).toFixed(0)}K`
+  } else {
+    return value.toFixed(0)
+  }
+}
+
+async function downloadCSV(cvr: string) {
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/v1/compare/${cvr}/export`)
+    if (!response.ok) throw new Error('Export failed')
+    
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `company_${cvr}_comparison.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error('Export failed:', error)
+    alert('Export failed. Please try again.')
+  }
 }
 
 function Metric({label, value, suffix='', delta, isPercent=false}:{label:string, value:number|null|undefined, suffix?:string, delta:number|null|undefined, isPercent?:boolean}){

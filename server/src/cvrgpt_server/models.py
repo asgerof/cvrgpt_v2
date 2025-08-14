@@ -8,11 +8,11 @@ from pydantic import BaseModel, Field
 
 
 class Citation(BaseModel):
-    source: Optional[str] = None
-    path: Optional[str] = None
-    url: Optional[str] = None
-    type: Optional[Literal["ixbrl", "pdf", "fixtures", "api"]] = None
-    tag: Optional[str] = None
+    source_id: Optional[str] = None  # internal reference
+    url: str
+    label: str
+    accessed_at: Optional[str] = None  # ISO timestamp
+    type: Optional[Literal["ixbrl", "pdf", "api", "fixtures"]] = None
     page: Optional[int] = None
 
 
@@ -76,47 +76,42 @@ class FilingsResponse(BaseModel):
 
 # /v1/accounts/latest/{cvr}
 class Period(BaseModel):
+    start_date: Optional[str] = None  # YYYY-MM-DD
+    end_date: Optional[str] = None    # YYYY-MM-DD
     year: Optional[int] = None
 
 
-class ProfitAndLoss(BaseModel):
+class AccountsSnapshot(BaseModel):
+    period: Optional[Period] = None
     revenue: Optional[float] = None
-    ebit: Optional[float] = None
-
-
-class BalanceSheet(BaseModel):
+    ebit: Optional[float] = None  # operating profit
+    net_income: Optional[float] = None
     assets: Optional[float] = None
     equity: Optional[float] = None
+    cash: Optional[float] = None
     current_assets: Optional[float] = None
     current_liabilities: Optional[float] = None
-
-
-class AccountPeriod(BaseModel):
-    period: Optional[Period] = None
-    pl: Optional[ProfitAndLoss] = None
-    bs: Optional[BalanceSheet] = None
-    citations: List[Citation] = Field(default_factory=list)
+    source_anchors: List[Citation] = Field(default_factory=list)  # per-field citations
 
 
 class AccountsResponse(BaseModel):
-    accounts: dict  # { "current": AccountPeriod, "previous": AccountPeriod }
+    current: Optional[AccountsSnapshot] = None
+    previous: Optional[AccountsSnapshot] = None
     citations: List[Citation] = Field(default_factory=list)
 
 
 # /v1/compare/{cvr}
-class Ratios(BaseModel):
-    margin: Optional[float] = None
-    solvency: Optional[float] = None
-    liquidity: Optional[float] = None
-
-
-class Comparison(BaseModel):
-    current: Ratios
-    previous: Ratios
-    delta: Ratios
+class AccountsDelta(BaseModel):
+    field: str
+    current_value: Optional[float] = None
+    previous_value: Optional[float] = None
+    absolute_change: Optional[float] = None
+    percentage_change: Optional[float] = None
 
 
 class CompareResponse(BaseModel):
-    comparison: Optional[Comparison] = None
+    current_period: Optional[str] = None  # "2024"
+    previous_period: Optional[str] = None  # "2023"
+    key_changes: List[AccountsDelta] = Field(default_factory=list)
     narrative: str
-    citations: List[Citation] = Field(default_factory=list)
+    sources: List[Citation] = Field(default_factory=list)

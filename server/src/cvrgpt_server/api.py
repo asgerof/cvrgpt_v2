@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException, Request, Response
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .logging import setup_logging
@@ -7,11 +7,13 @@ from .providers.fixtures import FixtureProvider
 from .providers.cvr_api import CVRApiProvider
 from .providers.regnskab import RegnskabProvider
 from .providers.base import CompositeProvider
-from .services.compare import compare_accounts, narrate_compare
+from .services.compare import compare_accounts, narrate_compare, compare_accounts_snapshots
 from .mcp_server import mcp
 from . import models
 from .errors import ErrorPayload
 import uuid
+import csv
+import io
 
 log = setup_logging()
 
@@ -117,15 +119,93 @@ async def latest_accounts(cvr: str):
 @app.get("/v1/compare/{cvr}", response_model=models.CompareResponse)
 async def compare(cvr: str):
     prov = get_provider()
-    data = await prov.get_latest_accounts(cvr)
-    latest = data.get("accounts")
-    if not latest or not latest.get("previous"):
-        return JSONResponse({
-            "comparison": None,
-            "narrative": "No comparable accounts available.",
-            "citations": data.get("citations", [])
-        })
-    comp = compare_accounts(latest.get("previous"), latest.get("current"))
-    narrative = narrate_compare(comp)
-    citations = data.get("citations", [])
-    return JSONResponse({"comparison": comp, "narrative": narrative, "citations": citations})
+    try:
+        data = await prov.get_latest_accounts(cvr)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    
+    accounts_data = data.get("accounts") if data else None
+    current_snapshot = None
+    previous_snapshot = None
+    
+    if accounts_data and isinstance(accounts_data, dict):
+        current_data = accounts_data.get("current")
+        previous_data = accounts_data.get("previous")
+        
+        if current_data:
+            current_snapshot = models.AccountsSnapshot(**current_data)
+        if previous_data:
+            previous_snapshot = models.AccountsSnapshot(**previous_data)
+    
+    # Use new comparison function
+    comparison_result = compare_accounts_snapshots(current_snapshot, previous_snapshot)
+    
+    # Add original citations
+    all_sources = comparison_result.get("sources", [])
+    if data and data.get("citations"):
+        all_sources.extend(data.get("citations", []))
+    
+    response_data = {
+        "current_period": comparison_result.get("current_period"),
+        "previous_period": comparison_result.get("previous_period"),
+        "key_changes": [change.model_dump() for change in comparison_result.get("key_changes", [])],
+        "narrative": comparison_result.get("narrative", "No comparison available."),
+        "sources": all_sources
+    }
+    
+    return JSONResponse(response_data)
+
+@app.get("/v1/compare/{cvr}/export")
+async def export_comparison(cvr: str, format: str = "csv"):
+    """Export comparison data as CSV or Excel."""
+    prov = get_provider()
+    try:
+        data = await prov.get_latest_accounts(cvr)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    
+    accounts_data = data.get("accounts") if data else None
+    current_snapshot = None
+    previous_snapshot = None
+    
+    if accounts_data and isinstance(accounts_data, dict):
+        current_data = accounts_data.get("current")
+        previous_data = accounts_data.get("previous")
+        
+        if current_data:
+            current_snapshot = models.AccountsSnapshot(**current_data)
+        if previous_data:
+            previous_snapshot = models.AccountsSnapshot(**previous_data)
+    
+    comparison_result = compare_accounts_snapshots(current_snapshot, previous_snapshot)
+    
+    # Generate CSV
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Headers
+    writer.writerow([
+        "Field", 
+        f"{comparison_result.get('previous_period', 'Previous')} Value", 
+        f"{comparison_result.get('current_period', 'Current')} Value",
+        "Absolute Change",
+        "Percentage Change"
+    ])
+    
+    # Data rows
+    for change in comparison_result.get("key_changes", []):
+        writer.writerow([
+            change.field,
+            f"{change.previous_value:,.0f}" if change.previous_value else "N/A",
+            f"{change.current_value:,.0f}" if change.current_value else "N/A", 
+            f"{change.absolute_change:,.0f}" if change.absolute_change else "N/A",
+            f"{change.percentage_change:.1f}%" if change.percentage_change else "N/A"
+        ])
+    
+    output.seek(0)
+    
+    return StreamingResponse(
+        io.StringIO(output.getvalue()),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=company_{cvr}_comparison.csv"}
+    )

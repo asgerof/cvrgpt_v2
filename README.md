@@ -1,60 +1,153 @@
-# CVRGPT v2
+# CVRGPT v2 — Live Danish Company Data with Citations
 
-A pragmatic starter kit for a **CVR/Virk-aware MCP server** plus a **Next.js chat UI**.
-This is *not* just “another CVR lookup”: it’s structured to compute **derived answers with provenance**
-(e.g., “compare latest two accounts, show deltas, and link to sources”), expose them as **MCP tools**,
-and also ship a simple REST API that your frontend (or RPA flows) can call.
+**Production-ready MVP for chat-like exploration of Danish company data (CVR) with live data sources, citations, and export functionality.**
 
-## What’s in here
+## Quick Start (5 minutes)
 
-- **`server/`** – Python FastAPI app *and* an MCP server (via `mcp` SDK with SSE + stdio).
-  - Tools: `search_companies`, `get_company`, `list_filings`, `get_latest_accounts`, `compare_accounts`.
-  - Provider abstraction: start with **fixture data**; swap in real CVR/Virk providers as you add credentials.
-  - Every response carries **citations**.
-- **`frontend/`** – Next.js (App Router, TS, Tailwind) with a chat-ish UI and an evidence pane.
-  - Calls the REST API (same logic the MCP tools use).
-- **CI** – GitHub Action to run Python tests and build the Next.js app.
+### Prerequisites
+- Python 3.12+
+- Node.js 20+
+- CVR API credentials (or use fixtures for demo)
 
-> ⚠️ Note on data sources: CVR basic data is generally free under the Basic Data Programme, but most
-> production endpoints require registration/credentials. This starter uses fixtures by default so it runs
-> out-of-the-box; wire a real provider when you’re ready.
+### Backend Setup
 
-## Quick start (two terminals)
-
-### 1) Python server (REST + MCP over SSE)
-```bash
+```powershell
+# Clone and setup
 cd server
-python -m venv .venv && source .venv/bin/activate  # Windows: .venv\Scripts\activate
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+
+# Configure environment (copy your credentials)
+cp .env.example .env.local
+# Edit .env.local with your CVR credentials
+
+# Start API server
+$env:PYTHONPATH = "src"
 uvicorn cvrgpt_server.api:app --reload --port 8000
-# MCP SSE is mounted at /mcp; health is at /healthz
 ```
 
-### 2) Frontend
-```bash
+### Frontend Setup
+
+```powershell
+# In a new terminal
 cd frontend
-npm i
-npm run dev   # Next.js on :3000, expects API on :8000 (configurable via NEXT_PUBLIC_API_BASE_URL)
+$env:NEXT_PUBLIC_API_BASE_URL = "http://localhost:8000"
+npm install
+npm run dev
 ```
 
-### 3) MCP (optional)
-- **Stdio:** `python -m cvrgpt_server.mcp_server stdio`
-- **SSE (already mounted):** point your MCP client/ChatGPT remote connector to `http://localhost:8000/mcp`
-  (see `server/src/cvrgpt_server/mcp_server.py`).
+### Smoke Test
 
-## Configure providers
-
-Copy `.env.example` to `.env` inside `server/` and fill in any API keys you have (e.g., CVR third-party).
-Until then, the **FixtureProvider** serves data from `server/src/cvrgpt_server/fixtures`.
-
-## Tests
-```bash
+```powershell
 cd server
-pytest -q
+.\.venv\Scripts\Activate.ps1
+$env:PYTHONPATH = "src"
+python scripts/smoke.py
 ```
 
-## Project decisions
+## What Works Today
 
-- Keep **MCP** and **REST** in the **same process** for now (SSE mount). You can split later.
-- **Provider pattern** so you can add: Datafordeler CVR, Offentliggørelser index, iXBRL parsing, VIES VAT, sanctions/PEP, etc.
-- **Provenance-first** responses (`citations: []`) to make compliance happy and debugging easy.
+✅ **Live CVR Data**: Search and company profiles via CVR Indeks  
+✅ **Citations**: Every data point links back to source with timestamps  
+✅ **Financial Comparison**: Key metrics with percentage changes and narrative  
+✅ **CSV Export**: One-click download of comparison data  
+✅ **MCP Tools**: Same functionality available to LLM agents via `/mcp`  
+✅ **Error Handling**: Standardized error codes and graceful fallbacks  
+✅ **Caching**: TTL cache for API responses with cache hit/miss headers  
+
+## API Endpoints
+
+| Endpoint | Description | Response |
+|----------|-------------|----------|
+| `GET /v1/search?q={query}` | Search companies | Companies with CVR, name, status |
+| `GET /v1/company/{cvr}` | Company profile | Full company details + citations |
+| `GET /v1/filings/{cvr}` | Recent filings | Filing list (scaffolded) |
+| `GET /v1/accounts/latest/{cvr}` | Latest accounts | Financial data (scaffolded) |
+| `GET /v1/compare/{cvr}` | Compare accounts | Key changes + narrative + sources |
+| `GET /v1/compare/{cvr}/export` | Export comparison | CSV download |
+
+## Environment Variables
+
+```bash
+# Provider selection
+CVRGPT_PROVIDER=cvr_api              # or "fixtures" for demo
+
+# CVR API access
+CVRGPT_API_BASE_URL=http://distribution.virk.dk/cvr-permanent
+CVRGPT_API_USER=your_username
+CVRGPT_API_PASSWORD=your_password
+
+# Optional: OpenAI for future LLM features
+OPENAI_API_KEY=sk-...
+
+# CORS (for frontend)
+CVRGPT_ALLOWED_ORIGINS=http://localhost:3000
+```
+
+## Architecture
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Next.js UI   │────│   FastAPI REST   │────│ CompositeProvider│
+│                 │    │                  │    │                 │
+│ • Search        │    │ • /v1/search     │    │ • CVRApiProvider│
+│ • Profile       │    │ • /v1/company    │    │ • RegnskabProvider│
+│ • Compare       │    │ • /v1/compare    │    │ • Citations     │
+│ • Export CSV    │    │ • /mcp (tools)   │    │ • Error handling│
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+```
+
+**Provider Architecture**: Clean separation between CVR core data (search/profiles) and regnskab data (filings/accounts). Easy to extend with additional data sources.
+
+**Citations Pipeline**: Every response includes `sources[]` with URLs, labels, and access timestamps for full traceability.
+
+## Development
+
+### Run Tests
+```powershell
+cd server
+.\.venv\Scripts\Activate.ps1
+$env:PYTHONPATH = "src"
+pytest
+```
+
+### MCP Tools (for LLM agents)
+```bash
+# Stdio mode
+python -m cvrgpt_server.mcp_server stdio
+
+# SSE mode (mounted at /mcp in main app)
+curl http://localhost:8000/mcp/tools
+```
+
+### Error Codes
+- `NOT_FOUND`: Company/data not found
+- `UPSTREAM_ERROR`: CVR API unavailable  
+- `RATE_LIMIT`: API rate limit exceeded
+- `PROVIDER_DOWN`: Service unavailable
+- `INSUFFICIENT_DATA`: Not enough data for comparison
+
+## Next Steps
+
+**Week 1 Priority**:
+- [ ] Implement real filings from Offentliggørelser
+- [ ] Parse 6 key financial facts from iXBRL/PDF
+- [ ] Add watchlist + basic alerts
+- [ ] OpenAPI spec for Power Automate
+
+**Backlog**:
+- Deep iXBRL parsing with line-item drill-downs
+- Excel add-in and Teams bot integration  
+- Multi-provider federation and failover
+- Usage metrics and pricing toggle
+
+## Support
+
+- **Issues**: Create GitHub issue with error logs
+- **API Docs**: Visit `/docs` when server is running
+- **MCP Tools**: Visit `/mcp` for tool definitions
+
+---
+
+Built with FastAPI, Next.js, and modern Python typing. Production-ready with proper error handling, caching, and observability.

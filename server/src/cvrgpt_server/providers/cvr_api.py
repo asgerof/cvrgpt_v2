@@ -1,8 +1,14 @@
 from .base import Provider
+from ..models import Citation
+from ..errors import ErrorPayload, ErrorCode
 import httpx
 from cachetools import TTLCache
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlencode
+from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 class CVRApiProvider(Provider):
     def __init__(self, base_url: str, token: str | None = None, user: str | None = None, password: str | None = None):
@@ -62,13 +68,25 @@ class CVRApiProvider(Provider):
                 status = (v.get("virksomhedsstatus") or {}).get("status") or md.get("sammensatStatus")
                 if cvr and name:
                     items.append({"cvr": cvr, "name": name, "status": status})
-            data = {"items": items[:limit], "citations": [{"source": "api", "url": url}]}
+            accessed_at = datetime.utcnow().isoformat() + "Z"
+            citation = Citation(
+                url=url,
+                label="CVR Virksomhedsregister",
+                accessed_at=accessed_at,
+                type="api"
+            )
+            data = {"items": items[:limit], "citations": [citation.model_dump()]}
             self._cache[key] = data
             out = dict(data); out["x_cache"] = "miss"; return out
         except httpx.HTTPStatusError as e:
-            raise httpx.HTTPStatusError(f"Upstream search failed: {e.response.text}", request=e.request, response=e.response)
+            logger.error(f"CVR search failed: {e.response.status_code} {e.response.text}")
+            if e.response.status_code == 429:
+                raise RuntimeError(ErrorPayload(code=ErrorCode.RATE_LIMIT, message="CVR API rate limit exceeded", retry_after=60).model_dump())
+            else:
+                raise RuntimeError(ErrorPayload(code=ErrorCode.UPSTREAM_ERROR, message="CVR API unavailable").model_dump())
         except Exception as e:
-            raise RuntimeError(f"search_companies failed: {e}")
+            logger.error(f"CVR search error: {e}")
+            raise RuntimeError(ErrorPayload(code=ErrorCode.PROVIDER_DOWN, message="CVR service unavailable").model_dump())
 
     async def get_company(self, cvr: str) -> dict:
         key = ("company", cvr)
@@ -131,15 +149,27 @@ class CVRApiProvider(Provider):
                 "addresses": addresses,
                 "officers": [],
             }
-            data = {"company": company, "citations": [{"source": "api", "url": url}]}
+            accessed_at = datetime.utcnow().isoformat() + "Z"
+            citation = Citation(
+                url=url,
+                label="CVR Virksomhedsregister",
+                accessed_at=accessed_at,
+                type="api"
+            )
+            data = {"company": company, "citations": [citation.model_dump()]}
             self._cache[key] = data
             out = dict(data); out["x_cache"] = "miss"; return out
         except httpx.HTTPStatusError as e:
-            raise httpx.HTTPStatusError(f"Upstream company failed: {e.response.text}", request=e.request, response=e.response)
+            logger.error(f"CVR company lookup failed: {e.response.status_code} {e.response.text}")
+            if e.response.status_code == 429:
+                raise RuntimeError(ErrorPayload(code=ErrorCode.RATE_LIMIT, message="CVR API rate limit exceeded", retry_after=60).model_dump())
+            else:
+                raise RuntimeError(ErrorPayload(code=ErrorCode.UPSTREAM_ERROR, message="CVR API unavailable").model_dump())
         except FileNotFoundError:
             raise
         except Exception as e:
-            raise RuntimeError(f"get_company failed: {e}")
+            logger.error(f"CVR company error: {e}")
+            raise RuntimeError(ErrorPayload(code=ErrorCode.PROVIDER_DOWN, message="CVR service unavailable").model_dump())
 
     async def list_filings(self, cvr: str, limit: int = 10) -> dict:
         key = ("filings", cvr, limit)
