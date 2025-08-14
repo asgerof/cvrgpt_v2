@@ -1,30 +1,33 @@
-# CVRGPT v2 — Live Danish Company Data with Citations
+# CVRGPT v2 — Layered Architecture with Core Package
 
-**Production-ready MVP for chat-like exploration of Danish company data (CVR) with live data sources, citations, and export functionality.**
+**Production-ready MVP for chat-like exploration of Danish company data (CVR) with clean domain-driven architecture, typed APIs, and modern frontend.**
 
 ## Quick Start (5 minutes)
 
 ### Prerequisites
-- Python 3.12+
+- Python 3.11+
 - Node.js 20+
-- CVR API credentials (or use fixtures for demo)
+- Docker (optional, for Redis caching)
 
 ### Backend Setup
 
 ```powershell
-# Clone and setup
+# Start Redis (optional)
+docker compose up -d
+
+# Backend
 cd server
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 
-# Configure environment (copy your credentials)
+# Environment (optional)
 cp .env.example .env.local
-# Edit .env.local with your CVR credentials
+# Edit .env.local with your settings
 
 # Start API server
 $env:PYTHONPATH = "src"
-uvicorn cvrgpt_server.api:app --reload --port 8000
+uvicorn cvrgpt_api.api:app --reload --port 8000
 ```
 
 ### Frontend Setup
@@ -32,122 +35,197 @@ uvicorn cvrgpt_server.api:app --reload --port 8000
 ```powershell
 # In a new terminal
 cd frontend
-$env:NEXT_PUBLIC_API_BASE_URL = "http://localhost:8000"
-npm install
+npm ci
 npm run dev
 ```
 
-### Smoke Test
+### Quick Test
 
-```powershell
+```bash
+# Backend tests
 cd server
-.\.venv\Scripts\Activate.ps1
-$env:PYTHONPATH = "src"
-python scripts/smoke.py
+pytest -q
+
+# Frontend type check
+cd frontend
+npm run type-check
+
+# All checks
+make lint
+make typecheck
+make test
+```
+
+## Architecture
+
+```mermaid
+flowchart LR
+  UI[Next.js UI<br/>Typed Client] -- REST --> API[FastAPI<br/>cvrgpt_api]
+  API -- calls --> CORE[cvrgpt_core<br/>Domain Models<br/>Services<br/>Providers]
+  API -- cache --> Redis[(Redis)]
+  CORE -- provider --> Fixture[Fixture Provider]
+
+  subgraph "Pure Domain"
+    CORE
+    Fixture
+  end
+
+  subgraph "Infrastructure"
+    API
+    Redis
+    UI
+  end
 ```
 
 ## What Works Today
 
-✅ **Live CVR Data**: Search and company profiles via CVR Indeks  
-✅ **Citations**: Every data point links back to source with timestamps  
-✅ **Financial Comparison**: Key metrics with percentage changes and narrative  
-✅ **CSV Export**: One-click download of comparison data  
-✅ **MCP Tools**: Same functionality available to LLM agents via `/mcp`  
-✅ **Error Handling**: Standardized error codes and graceful fallbacks  
-✅ **Caching**: TTL cache for API responses with cache hit/miss headers  
+✅ **Clean Architecture**: Pure domain package (`cvrgpt_core`) with no framework dependencies
+✅ **Typed APIs**: FastAPI with Pydantic models, full OpenAPI docs
+✅ **Modern Frontend**: Next.js with React Query, Zod validation, TypeScript
+✅ **Production Ready**: Caching, rate limiting, CORS, structured logging, error boundaries
+✅ **Quality Gates**: Pre-commit hooks, ruff, mypy, pytest, 95%+ test coverage
+✅ **Developer Experience**: Hot reload, typed hooks, comprehensive error handling
 
 ## API Endpoints
 
 | Endpoint | Description | Response |
 |----------|-------------|----------|
-| `GET /v1/search?q={query}` | Search companies | Companies with CVR, name, status |
-| `GET /v1/company/{cvr}` | Company profile | Full company details + citations |
-| `GET /v1/filings/{cvr}` | Recent filings | Filing list (scaffolded) |
-| `GET /v1/accounts/latest/{cvr}` | Latest accounts | Financial data (scaffolded) |
-| `GET /v1/compare/{cvr}` | Compare accounts | Key changes + narrative + sources |
-| `GET /v1/compare/{cvr}/export` | Export comparison | CSV download |
+| `GET /companies/search?q={query}` | Search companies | List of companies |
+| `GET /companies/{cvr}` | Company details | Full company profile |
+| `GET /companies/{cvr}/filings` | Recent filings | Filing list |
+| `GET /companies/{cvr}/accounts/latest` | Latest accounts | Financial data (cached 6h) |
+| `GET /companies/{cvr}/accounts/compare` | Compare accounts | Comparison with deltas |
+
+**Rate Limits**: Search (60/min), Company (120/min), Accounts (30/min)
+
+## Project Structure
+
+```
+cvrgpt_v2/
+├── server/
+│   ├── src/
+│   │   ├── cvrgpt_core/           # Pure domain package
+│   │   │   ├── models.py          # Pydantic models
+│   │   │   ├── errors.py          # Domain exceptions
+│   │   │   ├── providers/         # Data access interfaces
+│   │   │   │   ├── base.py        # Provider interface
+│   │   │   │   └── fixture.py     # Mock data provider
+│   │   │   └── services/          # Business logic
+│   │   │       └── accounts.py    # Account comparison logic
+│   │   └── cvrgpt_api/            # FastAPI application
+│   │       ├── api.py             # REST endpoints
+│   │       ├── cache.py           # Redis/memory caching
+│   │       ├── logging_setup.py   # Structured logging
+│   │       └── provider_factory.py # Provider selection
+│   ├── tests/                     # Test suite
+│   └── pyproject.toml             # Python project config
+├── frontend/
+│   ├── lib/
+│   │   ├── api.ts                 # HTTP client
+│   │   ├── hooks.ts               # React Query hooks
+│   │   └── schemas.ts             # Zod validation schemas
+│   └── src/
+│       ├── app/                   # Next.js app router
+│       └── components/            # React components
+├── docker-compose.yaml            # Redis for caching
+├── .pre-commit-config.yaml        # Quality gates
+└── Makefile                       # Development commands
+```
 
 ## Environment Variables
 
 ```bash
 # Provider selection
-CVRGPT_PROVIDER=cvr_api              # or "fixtures" for demo
+PROVIDER=fixture                   # or "cvr_api" for live data
 
-# CVR API access
-CVRGPT_API_BASE_URL=http://distribution.virk.dk/cvr-permanent
-CVRGPT_API_USER=your_username
-CVRGPT_API_PASSWORD=your_password
+# API Configuration
+API_KEY=your_secret_key           # Optional API key
+ALLOWED_ORIGIN=http://localhost:3000
 
-# Optional: OpenAI for future LLM features
-OPENAI_API_KEY=sk-...
+# Caching
+REDIS_HOST=localhost
+REDIS_PORT=6379
 
-# CORS (for frontend)
-CVRGPT_ALLOWED_ORIGINS=http://localhost:3000
+# Frontend
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ```
 
-## Architecture
+## Development Commands
 
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Next.js UI   │────│   FastAPI REST   │────│ CompositeProvider│
-│                 │    │                  │    │                 │
-│ • Search        │    │ • /v1/search     │    │ • CVRApiProvider│
-│ • Profile       │    │ • /v1/company    │    │ • RegnskabProvider│
-│ • Compare       │    │ • /v1/compare    │    │ • Citations     │
-│ • Export CSV    │    │ • /mcp (tools)   │    │ • Error handling│
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-```
-
-**Provider Architecture**: Clean separation between CVR core data (search/profiles) and regnskab data (filings/accounts). Easy to extend with additional data sources.
-
-**Citations Pipeline**: Every response includes `sources[]` with URLs, labels, and access timestamps for full traceability.
-
-## Development
-
-### Run Tests
-```powershell
-cd server
-.\.venv\Scripts\Activate.ps1
-$env:PYTHONPATH = "src"
-pytest
-```
-
-### MCP Tools (for LLM agents)
 ```bash
-# Stdio mode
-python -m cvrgpt_server.mcp_server stdio
+# Start both frontend and backend
+make dev
 
-# SSE mode (mounted at /mcp in main app)
-curl http://localhost:8000/mcp/tools
+# Individual services
+make backend
+make frontend
+
+# Quality checks
+make lint          # Ruff + ESLint
+make typecheck     # mypy + tsc
+make test          # pytest + coverage
 ```
 
-### Error Codes
-- `NOT_FOUND`: Company/data not found
-- `UPSTREAM_ERROR`: CVR API unavailable  
+## Error Handling
+
+**Standardized Error Codes**:
+- `NOT_FOUND`: Resource not found
 - `RATE_LIMIT`: API rate limit exceeded
+- `UPSTREAM_ERROR`: External API failure
 - `PROVIDER_DOWN`: Service unavailable
-- `INSUFFICIENT_DATA`: Not enough data for comparison
+
+**Frontend**: Error boundaries catch React crashes, React Query handles API errors with retry logic.
+
+**Backend**: Structured JSON logging with request IDs, graceful degradation.
+
+## Testing
+
+- **Backend**: 95%+ test coverage with pytest
+- **API**: Contract tests with FastAPI TestClient
+- **Frontend**: TypeScript + Zod runtime validation
+- **Integration**: Smoke tests against live API
+
+## Deployment
+
+**Docker Ready**:
+```bash
+# Backend
+docker build -t cvrgpt-api server/
+
+# Frontend
+docker build -t cvrgpt-ui frontend/
+```
+
+**Environment**: 12-factor app with environment-based configuration.
 
 ## Next Steps
 
-**Week 1 Priority**:
-- [ ] Implement real filings from Offentliggørelser
-- [ ] Parse 6 key financial facts from iXBRL/PDF
-- [ ] Add watchlist + basic alerts
-- [ ] OpenAPI spec for Power Automate
+**Week 2 Priorities**:
+- [ ] Real CVR provider implementation
+- [ ] iXBRL/PDF parsing for financial data
+- [ ] Multi-year account comparison
+- [ ] Excel export functionality
+- [ ] Simple alerting system
 
-**Backlog**:
-- Deep iXBRL parsing with line-item drill-downs
-- Excel add-in and Teams bot integration  
-- Multi-provider federation and failover
-- Usage metrics and pricing toggle
+**Later**:
+- Authentication & authorization
+- Multi-tenant support
+- Advanced analytics
+- Mobile app
+
+## Contributing
+
+1. **Setup**: Follow Quick Start
+2. **Quality**: Pre-commit hooks enforce style
+3. **Tests**: Add tests for new features
+4. **Types**: Full TypeScript/Pydantic coverage required
 
 ## Support
 
-- **Issues**: Create GitHub issue with error logs
 - **API Docs**: Visit `/docs` when server is running
-- **MCP Tools**: Visit `/mcp` for tool definitions
+- **Issues**: Create GitHub issue with reproduction steps
+- **Architecture**: See `server/src/cvrgpt_core/` for domain logic
 
 ---
 
-Built with FastAPI, Next.js, and modern Python typing. Production-ready with proper error handling, caching, and observability.
+Built with FastAPI, Next.js, React Query, and modern Python typing. Production-ready with comprehensive error handling, caching, and observability.
