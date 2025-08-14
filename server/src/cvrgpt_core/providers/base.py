@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List
 from ..models import Company, Filing, Accounts
 
+
 class Provider(ABC):
     @abstractmethod
     def search_companies(self, q: str) -> List[Company]: ...
@@ -11,3 +12,5 @@ class Provider(ABC):
     def list_filings(self, cvr: str) -> List[Filing]: ...
     @abstractmethod
     def latest_accounts(self, cvr: str) -> Accounts: ...
+    @abstractmethod
+    def accounts_for_year(self, cvr: str, year: int) -> Accounts: ...

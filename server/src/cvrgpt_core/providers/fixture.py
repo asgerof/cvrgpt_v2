@@ -2,6 +2,7 @@ from typing import List
 from .base import Provider
 from ..models import Company, Filing, Accounts, Citation
 
+
 class FixtureProvider(Provider):
     def search_companies(self, q: str) -> List[Company]:
         # TODO: map from existing fixture store
@@ -15,5 +16,22 @@ class FixtureProvider(Provider):
 
     def latest_accounts(self, cvr: str) -> Accounts:
         from pydantic import HttpUrl
-        return Accounts(year=2024, revenue=1000000.0, ebit=120000.0, equity=500000.0,
-                        citations=[Citation(url=HttpUrl("https://example.com/fixture"))])
+
+        return Accounts(
+            year=2024,
+            revenue=1000000.0,
+            ebit=120000.0,
+            equity=500000.0,
+            citations=[Citation(url=HttpUrl("https://example.com/fixture"))],
+        )
+
+    def accounts_for_year(self, cvr: str, year: int) -> Accounts:
+        from pydantic import HttpUrl
+
+        return Accounts(
+            year=year,
+            revenue=900000.0,
+            ebit=100000.0,
+            equity=450000.0,
+            citations=[Citation(url=HttpUrl("https://example.com/fixture"))],
+        )
