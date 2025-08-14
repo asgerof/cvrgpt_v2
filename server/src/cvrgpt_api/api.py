@@ -11,6 +11,7 @@ from cvrgpt_core.errors import NotFound, RateLimited, UpstreamBadData
 from cvrgpt_core.services.accounts import compare as compare_accounts
 from .cache import cache_json
 from .provider_factory import get_provider as get_provider_instance
+from .logging_setup import RequestIdMiddleware
 
 API_KEY = os.getenv("API_KEY")
 
@@ -25,7 +26,8 @@ limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="CVRGPT API")
 app.state.limiter = limiter
 
-# CORS
+# Middleware
+app.add_middleware(RequestIdMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[os.getenv("ALLOWED_ORIGIN", "http://localhost:3000")],
