@@ -1,6 +1,5 @@
-from fastapi import FastAPI, Depends, Query, HTTPException
+from fastapi import FastAPI, Depends, Query
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
 from typing import List
 from cvrgpt_core.models import Company, Filing, Accounts, CompareAccountsResponse
 from cvrgpt_core.providers.fixture import FixtureProvider

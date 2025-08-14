@@ -1,10 +1,11 @@
 from typing import Dict, Optional
-from ..models import Accounts, CompareAccountsResponse, Citation
+from ..models import Accounts, CompareAccountsResponse
 
 NUM_FIELDS = ("revenue", "ebit", "equity")
 
 def _delta(a: Optional[float], b: Optional[float]) -> Optional[float]:
-    if a is None or b is None: return None
+    if a is None or b is None:
+        return None
     return a - b
 
 def compare(a: Accounts, b: Accounts) -> CompareAccountsResponse:
