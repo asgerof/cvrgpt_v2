@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { searchCompanies, getCompany, compare } from '@/lib/api'
+import { searchCompanies, getCompany, compare, listFilings } from '@/lib/api'
 
 type Item = { cvr: string, name: string, status?: string }
 
@@ -10,6 +10,7 @@ export default function Chat() {
   const [selected, setSelected] = useState<string | null>(null)
   const [answer, setAnswer] = useState<any>(null)
   const [loading, setLoading] = useState(false)
+  const [filings, setFilings] = useState<any[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   async function doSearch(e: React.FormEvent) {
@@ -28,8 +29,9 @@ export default function Chat() {
     setSelected(cvr)
     setLoading(true); setError(null)
     try {
-      const [profile, cmp] = await Promise.all([getCompany(cvr), compare(cvr)])
+      const [profile, cmp, fl] = await Promise.all([getCompany(cvr), compare(cvr), listFilings(cvr)])
       setAnswer({ profile, cmp })
+      setFilings(fl?.filings || null)
     } catch (err:any) {
       setError(err?.message || 'Load failed')
     } finally { setLoading(false) }
@@ -61,6 +63,7 @@ export default function Chat() {
           <div className="space-y-6">
             <ProfileCard data={answer.profile.company} citations={answer.profile.citations} />
             <CompareCard data={answer.cmp} />
+            <FilingsCard filings={filings} />
           </div>
         )}
       </section>
@@ -134,7 +137,38 @@ function Citations({cites}:{cites:any[]}){
     <div className="mt-3 text-xs opacity-70 space-y-1">
       <div>Sources:</div>
       <ul className="list-disc ml-5">
-        {cites.map((c,i)=> <li key={i}><code>{c.type||c.source}</code>{c.url?<>: <a href={c.url} target="_blank" className="underline break-all">{c.url}</a></>: null}{c.path?<>: <span className="break-all">{c.path}</span></>: null}</li>)}
+        {cites.map((c,i)=> (
+          <li key={i}>
+            <code>{c.type||c.source}</code>
+            {c.url ? (
+              <>
+                : <a href={c.url} target="_blank" className="underline break-all" rel="noreferrer">{c.url}</a>
+              </>
+            ) : null}
+            {c.path ? (
+              <>
+                : <span className="break-all">{c.path}</span>
+              </>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function FilingsCard({filings}:{filings:any[]|null}){
+  if(!filings || filings.length===0) return null
+  return (
+    <div className="rounded-xl bg-black/20 p-4">
+      <h2 className="text-xl font-semibold mb-2">Recent filings</h2>
+      <ul className="text-sm space-y-1">
+        {filings.map((f:any)=> (
+          <li key={f.id}>
+            <a href={f.url} className="underline" target="_blank" rel="noreferrer">{f.id}</a>
+            <span className="opacity-70"> · {f.type} · {f.date}</span>
+          </li>
+        ))}
       </ul>
     </div>
   )

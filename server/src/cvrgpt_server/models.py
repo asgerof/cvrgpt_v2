@@ -117,6 +117,6 @@ class Comparison(BaseModel):
 
 
 class CompareResponse(BaseModel):
-    comparison: Comparison
+    comparison: Optional[Comparison] = None
     narrative: str
     citations: List[Citation] = Field(default_factory=list)

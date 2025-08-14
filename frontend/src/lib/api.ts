@@ -17,3 +17,15 @@ export async function compare(cvr: string) {
   if (!r.ok) throw new Error('compare failed')
   return r.json()
 }
+
+export async function listFilings(cvr: string, limit: number = 2) {
+  const r = await fetch(`${base}/v1/filings/${cvr}?limit=${limit}`, { cache: 'no-store' })
+  if (!r.ok) throw new Error('filings failed')
+  return r.json()
+}
+
+export async function getLatestAccounts(cvr: string) {
+  const r = await fetch(`${base}/v1/accounts/latest/${cvr}`, { cache: 'no-store' })
+  if (!r.ok) throw new Error('accounts failed')
+  return r.json()
+}
