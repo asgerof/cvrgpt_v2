@@ -8,6 +8,7 @@ from cvrgpt_core.models import Company, Filing, Accounts, CompareAccountsRespons
 from cvrgpt_core.providers.base import Provider
 from cvrgpt_core.services.accounts import compare
 from cvrgpt_core.errors import NotFound, RateLimited, UpstreamBadData
+from .cache import cache_json
 
 
 def get_provider() -> Provider:
@@ -87,8 +88,12 @@ def list_filings(cvr: str, provider: Provider = Depends(get_provider)):
 @app.get("/v1/accounts/latest/{cvr}", response_model=Accounts)
 def latest_accounts(cvr: str, provider: Provider = Depends(get_provider)):
     """Get latest accounts for a company."""
-    try:
+
+    def _fetch():
         return provider.latest_accounts(cvr)
+
+    try:
+        return cache_json(f"latest_accounts:{cvr}", 6 * 3600, _fetch)
     except NotFound:
         raise HTTPException(
             status_code=404, detail={"error": "not_found", "detail": f"No accounts found for {cvr}"}
