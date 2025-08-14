@@ -1,0 +1,13 @@
+from abc import ABC, abstractmethod
+from typing import List
+from ..models import Company, Filing, Accounts
+
+class Provider(ABC):
+    @abstractmethod
+    def search_companies(self, q: str) -> List[Company]: ...
+    @abstractmethod
+    def get_company(self, cvr: str) -> Company: ...
+    @abstractmethod
+    def list_filings(self, cvr: str) -> List[Filing]: ...
+    @abstractmethod
+    def latest_accounts(self, cvr: str) -> Accounts: ...
