@@ -62,7 +62,7 @@ export default function Chat() {
         {answer && !loading && (
           <div className="space-y-6">
             <ProfileCard data={answer.profile.company} citations={answer.profile.citations} />
-            <CompareCard data={answer.cmp} cvr={selected} />
+            <CompareCard data={answer.cmp} cvr={selected!} />
             <FilingsCard filings={filings} />
           </div>
         )}
@@ -104,15 +104,15 @@ function CompareCard({data, cvr}:{data:any, cvr:string}){
   const changes = data?.key_changes || []
   const narrative = data?.narrative
   const sources = data?.sources || []
-  
+
   if(!changes.length && !narrative) return <div className="rounded-xl bg-black/20 p-4">No comparison available.</div>
-  
+
   return (
     <div className="rounded-xl bg-black/20 p-4">
       <div className="flex justify-between items-center mb-1">
         <h2 className="text-xl font-semibold">Financial Comparison</h2>
         {changes.length > 0 && (
-          <button 
+          <button
             onClick={() => downloadCSV(cvr)}
             className="text-xs px-3 py-1 rounded bg-blue-600/30 hover:bg-blue-600/50 transition"
           >
@@ -126,7 +126,7 @@ function CompareCard({data, cvr}:{data:any, cvr:string}){
         </p>
       )}
       {narrative && <p className="opacity-90 mb-3 text-sm">{narrative}</p>}
-      
+
       {changes.length > 0 && (
         <div className="space-y-2 mb-3">
           {changes.slice(0, 5).map((change: any, i: number) => (
@@ -134,7 +134,7 @@ function CompareCard({data, cvr}:{data:any, cvr:string}){
           ))}
         </div>
       )}
-      
+
       <Citations cites={sources} />
     </div>
   )
@@ -144,7 +144,7 @@ function ChangeRow({change}: {change: any}) {
   const pctChange = change.percentage_change
   const isPositive = pctChange > 0
   const isSignificant = Math.abs(pctChange) > 1
-  
+
   return (
     <div className="flex justify-between items-center p-2 rounded bg-white/5">
       <span className="font-medium text-sm">{change.field}</span>
@@ -164,7 +164,7 @@ function ChangeRow({change}: {change: any}) {
 
 function formatCurrency(value: number | null): string {
   if (value === null || value === undefined) return 'N/A'
-  
+
   if (Math.abs(value) >= 1_000_000) {
     return `${(value / 1_000_000).toFixed(1)}M`
   } else if (Math.abs(value) >= 1_000) {
@@ -178,7 +178,7 @@ async function downloadCSV(cvr: string) {
   try {
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/v1/compare/${cvr}/export`)
     if (!response.ok) throw new Error('Export failed')
-    
+
     const blob = await response.blob()
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
