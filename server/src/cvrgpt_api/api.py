@@ -1,7 +1,10 @@
 import os
-from fastapi import FastAPI, Depends, Query, HTTPException, Request
+from fastapi import FastAPI, Depends, Query, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from typing import List
 
 from cvrgpt_core.models import Company, Filing, Accounts, CompareAccountsResponse
@@ -9,29 +12,40 @@ from cvrgpt_core.providers.base import Provider
 from cvrgpt_core.services.accounts import compare
 from cvrgpt_core.errors import NotFound, RateLimited, UpstreamBadData
 from .cache import cache_json
+from .logging_setup import RequestIdMiddleware
 
 
 def get_provider() -> Provider:
     """Factory function to get the appropriate provider instance."""
-    from cvrgpt_core.providers.fixture import FixtureProvider
+    from .provider_factory import get_provider as _get_provider
 
-    name = (os.getenv("CVRGPT_PROVIDER") or "fixture").lower()
-    if name == "fixture":
-        return FixtureProvider()
-    # add real providers here later
-    return FixtureProvider()
+    return _get_provider()
 
+
+API_KEY = os.getenv("API_KEY")
+ALLOWED_ORIGIN = os.getenv("CVRGPT_ALLOWED_ORIGIN", "http://localhost:3000")
 
 app = FastAPI(title="CVRGPT API", version="0.1.0")
-
-# CORS
-ALLOWED_ORIGIN = os.getenv("CVRGPT_ALLOWED_ORIGIN", "http://localhost:3000")
+app.add_middleware(RequestIdMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[ALLOWED_ORIGIN],
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+
+
+@app.exception_handler(RateLimitExceeded)
+async def ratelimit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse({"error": "rate_limited"}, status_code=429)
+
+
+def verify_api_key(x_api_key: str = Header(None)):
+    if API_KEY and x_api_key != API_KEY:
+        raise HTTPException(status_code=401, detail="invalid_api_key")
 
 
 # Error handlers
@@ -51,7 +65,13 @@ async def upstream_bad_data_handler(request: Request, exc: UpstreamBadData):
 
 
 @app.get("/v1/search", response_model=List[Company])
-def search_companies(q: str = Query(..., min_length=2), provider: Provider = Depends(get_provider)):
+@limiter.limit("60/minute")
+def search_companies(
+    request: Request,
+    q: str = Query(..., min_length=2),
+    provider: Provider = Depends(get_provider),
+    _=Depends(verify_api_key),
+):
     """Search for companies by name or CVR."""
     try:
         return provider.search_companies(q)
@@ -60,7 +80,13 @@ def search_companies(q: str = Query(..., min_length=2), provider: Provider = Dep
 
 
 @app.get("/v1/company/{cvr}", response_model=Company)
-def get_company(cvr: str, provider: Provider = Depends(get_provider)):
+@limiter.limit("120/minute")
+def get_company(
+    request: Request,
+    cvr: str,
+    provider: Provider = Depends(get_provider),
+    _=Depends(verify_api_key),
+):
     """Get company details by CVR."""
     try:
         return provider.get_company(cvr)
@@ -86,7 +112,13 @@ def list_filings(cvr: str, provider: Provider = Depends(get_provider)):
 
 
 @app.get("/v1/accounts/latest/{cvr}", response_model=Accounts)
-def latest_accounts(cvr: str, provider: Provider = Depends(get_provider)):
+@limiter.limit("30/minute")
+def latest_accounts(
+    request: Request,
+    cvr: str,
+    provider: Provider = Depends(get_provider),
+    _=Depends(verify_api_key),
+):
     """Get latest accounts for a company."""
 
     def _fetch():
