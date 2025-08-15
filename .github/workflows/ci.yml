@@ -9,11 +9,15 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - run: pip install --upgrade pip
-      - run: pip install . || true
-      - run: pip install fastapi uvicorn[standard] httpx tenacity pybreaker slowapi redis "redis[hiredis]" structlog prometheus-client pytest pytest-asyncio respx httpx pytest-cov ruff mypy
+      - run: pip install -r requirements.txt
+      - run: pip install ruff mypy pytest pytest-cov
       - run: ruff check .
-      - run: mypy app
-      - run: pytest -q --cov=app
+      - run: |
+          export PYTHONPATH=src
+          mypy src/
+      - run: |
+          export PYTHONPATH=src
+          pytest -q --cov=src
   frontend:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: frontend } }
