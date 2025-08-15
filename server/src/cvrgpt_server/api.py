@@ -99,20 +99,18 @@ async def health():
 
 
 @app.get("/v1/search", response_model=models.SearchResponse)
-async def search(q: str, limit: int = 10, response: Response | None = None):
+async def search(q: str, limit: int = 10):
     prov = get_provider()
     try:
         data = await prov.search_companies(q, limit)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
-    x_cache = data.pop("x_cache", None)
-    if response is not None and x_cache:
-        response.headers["X-Cache"] = x_cache
+    data.pop("x_cache", None)  # Remove cache info for clean response
     return JSONResponse(data)
 
 
 @app.get("/v1/company/{cvr}", response_model=models.CompanyResponse)
-async def company(cvr: str, response: Response | None = None):
+async def company(cvr: str):
     prov = get_provider()
     try:
         data = await prov.get_company(cvr)
@@ -131,9 +129,7 @@ async def company(cvr: str, response: Response | None = None):
                 code=ErrorCode.UPSTREAM_ERROR, message="Company lookup failed"
             ).model_dump(),
         )
-    x_cache = data.pop("x_cache", None)
-    if response is not None and x_cache:
-        response.headers["X-Cache"] = x_cache
+    data.pop("x_cache", None)  # Remove cache info for clean response
     return JSONResponse(data)
 
 

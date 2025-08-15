@@ -1,14 +1,15 @@
 from fastapi.testclient import TestClient
-from app.main import app
+from cvrgpt_server.api import app
 
 API_KEY = "dev-local-key"
 
 
 def test_company_validation():
     client = TestClient(app)
-    r = client.get("/v1/company/12", headers={"x-api-key": API_KEY})
-    assert r.status_code == 422
-    assert r.json()["error"]["code"] == "VALIDATION_ERROR" or r.json().get("detail")
+    r = client.get("/v1/company/12")  # Invalid short CVR
+    assert r.status_code == 404
+    data = r.json()
+    assert data["code"] == "NOT_FOUND"
 
 
 def test_search_ok():

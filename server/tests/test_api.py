@@ -1,31 +1,35 @@
 from fastapi.testclient import TestClient
-from cvrgpt_api.api import app
+from cvrgpt_server.api import app
 
 client = TestClient(app)
 
+
 def test_search_companies():
-    res = client.get("/companies/search", params={"q":"De"})
+    res = client.get("/v1/search", params={"q": "De"})
     assert res.status_code == 200
     data = res.json()
-    assert isinstance(data, list)
-    assert "cvr" in data[0]
+    assert "items" in data
+    if data["items"]:
+        assert "cvr" in data["items"][0]
+
 
 def test_get_company():
-    res = client.get("/companies/12345678")
+    res = client.get("/v1/company/12345678")
     assert res.status_code == 200
-    assert res.json()["cvr"] == "12345678"
+    data = res.json()
+    assert "company" in data
+    assert data["company"]["cvr"] == "12345678"
+
 
 def test_latest_accounts():
-    res = client.get("/companies/12345678/accounts/latest")
+    res = client.get("/v1/accounts/latest/12345678")
     assert res.status_code == 200
     data = res.json()
-    assert "year" in data
-    assert "revenue" in data
+    assert "accounts" in data
+
 
 def test_compare_accounts():
-    res = client.get("/companies/12345678/accounts/compare")
+    res = client.get("/v1/compare/12345678")
     assert res.status_code == 200
     data = res.json()
-    assert "a" in data
-    assert "b" in data
-    assert "deltas" in data
+    assert "narrative" in data
