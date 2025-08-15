@@ -1,8 +1,15 @@
-from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi import FastAPI, HTTPException, Request, Depends, APIRouter
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from .config import settings
-from .logging import setup_logging
+from .logging import setup_logging, access_log_mw
+from .security import require_api_key
+from .observability import RequestIDMiddleware
+from .redis_client import redis_client
+from .rate_limit import init_rate_limiter
+from fastapi_limiter.depends import RateLimiter
+from .cache import cache_get, cache_set, with_etag
 from .providers.fixtures import FixtureProvider
 from .providers.cvr_api import CVRApiProvider
 from .providers.regnskab import RegnskabProvider
@@ -12,7 +19,6 @@ from .mcp_server import mcp
 from . import models
 from .errors import ErrorPayload, ErrorCode
 from cvrgpt_server import metrics
-import uuid
 import csv
 import io
 
@@ -46,8 +52,16 @@ def get_provider():
 
 app = FastAPI(title="CVRGPT Server", version="0.1.0")
 
+# Create versioned router with API key protection
+api_v1 = APIRouter(prefix="/v1", dependencies=[Depends(require_api_key)])
+
+# Add request ID middleware
+app.add_middleware(RequestIDMiddleware)
+
+# Wire up access logging
+app.add_middleware(BaseHTTPMiddleware, dispatch=access_log_mw)
+
 # Wire up metrics
-app.middleware("http")(metrics.timing_middleware)
 app.include_router(metrics.router)
 
 # CORS so the Next.js dev server can talk to the API
@@ -61,13 +75,16 @@ app.add_middleware(
 # Mount MCP SSE at /mcp
 app.mount(settings.mcp_mount_path, mcp.sse_app())
 
+# Include the versioned API router
+app.include_router(api_v1)
 
-@app.middleware("http")
-async def request_id_middleware(request: Request, call_next):
-    req_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
-    response: Response = await call_next(request)
-    response.headers["X-Request-ID"] = req_id
-    return response
+
+@app.on_event("startup")
+async def _startup():
+    await init_rate_limiter()
+
+
+# Request ID middleware is now handled by RequestIDMiddleware class above
 
 
 @app.exception_handler(HTTPException)
@@ -98,7 +115,21 @@ async def health():
     return {"status": "ok", "provider": settings.provider}
 
 
-@app.get("/v1/search", response_model=models.SearchResponse)
+@app.get("/readyz", response_model=dict)
+async def readiness():
+    try:
+        pong = await redis_client.ping()
+        if pong:
+            return {"status": "ready"}
+    except Exception:
+        raise HTTPException(status_code=503, detail="Redis unavailable")
+
+
+@api_v1.get(
+    "/search",
+    response_model=models.SearchResponse,
+    dependencies=[Depends(RateLimiter(times=30, seconds=60))],
+)
 async def search(q: str, limit: int = 10):
     prov = get_provider()
     try:
@@ -109,8 +140,20 @@ async def search(q: str, limit: int = 10):
     return JSONResponse(data)
 
 
-@app.get("/v1/company/{cvr}", response_model=models.CompanyResponse)
-async def company(cvr: str):
+TTL_COMPANY = 6 * 60 * 60  # 6 hours
+
+
+@api_v1.get(
+    "/company/{cvr}",
+    response_model=models.CompanyResponse,
+    dependencies=[Depends(RateLimiter(times=60, seconds=60))],
+)
+async def company(cvr: str, request: Request):
+    key = f"v1:company:{cvr}"
+    cached = await cache_get(key)
+    if cached:
+        return with_etag(request, cached, TTL_COMPANY)
+
     prov = get_provider()
     try:
         data = await prov.get_company(cvr)
@@ -129,25 +172,33 @@ async def company(cvr: str):
                 code=ErrorCode.UPSTREAM_ERROR, message="Company lookup failed"
             ).model_dump(),
         )
-    data.pop("x_cache", None)  # Remove cache info for clean response
-    return JSONResponse(data)
+
+    # Clean the data and cache it
+    payload = dict(data)
+    payload.pop("x_cache", None)  # Remove cache info for clean response
+    await cache_set(key, payload, TTL_COMPANY)
+    return with_etag(request, payload, TTL_COMPANY)
 
 
-@app.get("/v1/filings/{cvr}", response_model=models.FilingsResponse)
+@api_v1.get("/filings/{cvr}", response_model=models.FilingsResponse)
 async def filings(cvr: str, limit: int = 10):
     prov = get_provider()
     data = await prov.list_filings(cvr, limit)
     return JSONResponse(data)
 
 
-@app.get("/v1/accounts/latest/{cvr}", response_model=models.AccountsResponse)
+@api_v1.get(
+    "/accounts/latest/{cvr}",
+    response_model=models.AccountsResponse,
+    dependencies=[Depends(RateLimiter(times=30, seconds=60))],
+)
 async def latest_accounts(cvr: str):
     prov = get_provider()
     data = await prov.get_latest_accounts(cvr)
     return JSONResponse(data)
 
 
-@app.get("/v1/compare/{cvr}", response_model=models.CompareResponse)
+@api_v1.get("/compare/{cvr}", response_model=models.CompareResponse)
 async def compare(cvr: str):
     prov = get_provider()
     try:
@@ -187,7 +238,7 @@ async def compare(cvr: str):
     return JSONResponse(response_data)
 
 
-@app.get("/v1/compare/{cvr}/export")
+@api_v1.get("/compare/{cvr}/export")
 async def export_comparison(cvr: str, format: str = "csv"):
     """Export comparison data as CSV or Excel."""
     prov = get_provider()

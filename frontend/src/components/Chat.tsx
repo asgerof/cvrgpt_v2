@@ -1,8 +1,9 @@
 'use client'
 import { useState } from 'react'
 import { searchCompanies, getCompany, compare, listFilings } from '@/lib/api'
+import type { components } from '@/types/api'
 
-type Item = { cvr: string, name: string, status?: string }
+type Item = components["schemas"]["Company"]
 
 export default function Chat() {
   const [q, setQ] = useState('')
@@ -47,10 +48,10 @@ export default function Chat() {
         {error && <div className="mt-2 text-xs text-red-300">{error}</div>}
         <ul className="mt-4 space-y-1">
           {items.map(it => (
-            <li key={it.cvr}>
-              <button className={`w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 ${selected===it.cvr?'bg-white/10':''}`} onClick={()=>pick(it.cvr)}>
-                <div className="font-medium">{it.name}</div>
-                <div className="text-xs opacity-70">{it.cvr} {it.status?`· ${it.status}`:''}</div>
+            <li key={it.cvr || 'unknown'}>
+              <button className={`w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 ${selected===it.cvr?'bg-white/10':''}`} onClick={()=>it.cvr && pick(it.cvr)}>
+                <div className="font-medium">{it.name || 'Unknown Company'}</div>
+                <div className="text-xs opacity-70">{it.cvr || 'No CVR'} {it.status?`· ${it.status}`:''}</div>
               </button>
             </li>
           ))}

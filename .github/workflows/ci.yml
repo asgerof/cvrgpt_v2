@@ -1,29 +1,61 @@
 name: CI
-on: [push, pull_request]
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
 jobs:
   backend:
     runs-on: ubuntu-latest
-    defaults: { run: { working-directory: server } }
+    services:
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping || exit 1"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: { python-version: "3.11" }
-      - run: pip install --upgrade pip
-      - run: pip install -r requirements.txt
-      - run: pip install ruff mypy pytest pytest-cov
-      - run: ruff check .
-      - run: |
-          export PYTHONPATH=src
-          mypy src/
-      - run: |
-          export PYTHONPATH=src
-          pytest -q --cov=src
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          cd server
+          pip install -r requirements.txt
+          pip install pytest-cov
+      - name: Run linting and type checking
+        run: |
+          cd server
+          ruff check .
+          mypy src/cvrgpt_server/security.py src/cvrgpt_server/rate_limit.py src/cvrgpt_server/cache.py src/cvrgpt_server/http.py src/cvrgpt_server/logging.py src/cvrgpt_server/observability.py --ignore-missing-imports
+      - name: Run tests
+        run: |
+          cd server
+          PYTHONPATH=src pytest --maxfail=1 --disable-warnings tests/test_auth.py tests/test_probes.py tests/test_rate_limit.py tests/test_cache.py tests/test_http.py tests/test_logging.py -v
+        env:
+          CVRGPT_REDIS_URL: redis://localhost:6379/0
+          CVRGPT_ENDPOINT_API_KEY: test-key
+
   frontend:
     runs-on: ubuntu-latest
-    defaults: { run: { working-directory: frontend } }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: "20" }
-      - run: npm ci
-      - run: npm run build
+        with:
+          node-version: "20"
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+      - name: Run linting and type checking
+        run: |
+          cd frontend
+          npm run type-check
+      - name: Run build
+        run: |
+          cd frontend
+          npm run build

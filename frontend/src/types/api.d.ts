@@ -4,6 +4,40 @@
  */
 
 export interface paths {
+    "/healthz": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Health Check */
+        get: operations["health_check"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/readyz": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Readiness Check */
+        get: operations["readiness_check"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/search": {
         parameters: {
             query?: never;
@@ -11,8 +45,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Search */
-        get: operations["search_v1_search_get"];
+        /** Search Companies */
+        get: operations["search_companies"];
         put?: never;
         post?: never;
         delete?: never;
@@ -28,8 +62,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Company */
-        get: operations["company_v1_company__cvr__get"];
+        /** Get Company Details */
+        get: operations["get_company"];
         put?: never;
         post?: never;
         delete?: never;
@@ -45,8 +79,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Filings */
-        get: operations["filings_v1_filings__cvr__get"];
+        /** List Company Filings */
+        get: operations["list_filings"];
         put?: never;
         post?: never;
         delete?: never;
@@ -62,8 +96,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Accounts Latest */
-        get: operations["accounts_latest_v1_accounts_latest__cvr__get"];
+        /** Get Latest Accounts */
+        get: operations["get_latest_accounts"];
         put?: never;
         post?: never;
         delete?: never;
@@ -79,42 +113,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Compare */
-        get: operations["compare_v1_compare__cvr__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/compare/{cvr}/export": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Compare Export */
-        get: operations["compare_export_v1_compare__cvr__export_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/health": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Health */
-        get: operations["health_health_get"];
+        /** Compare Company Accounts */
+        get: operations["compare_accounts"];
         put?: never;
         post?: never;
         delete?: never;
@@ -127,134 +127,74 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /** AccountSummary */
-        AccountSummary: {
-            /** Cvr */
-            cvr: string;
-            /** Fiscal Year */
-            fiscal_year: string;
-            /** Revenue */
-            revenue?: number | null;
-            /** Ebit */
-            ebit?: number | null;
-            /** Equity */
-            equity?: number | null;
-            /** Currency */
-            currency?: string | null;
-            /** Sources */
-            sources: components["schemas"]["Source"][];
-        };
-        /** Company */
         Company: {
-            /** Cvr */
-            cvr: string;
-            /** Name */
-            name: string;
-            /** Status */
-            status?: string | null;
-            /** Address */
-            address?: string | null;
-            /** Sources */
-            sources: components["schemas"]["Source"][];
+            cvr?: string;
+            name?: string;
+            address?: string;
+            status?: string;
         };
-        /** CompareItem */
-        CompareItem: {
-            /** Cvr */
-            cvr: string;
-            /** Name */
-            name: string;
-            /** Revenue Delta */
-            revenue_delta?: number | null;
-            /** Ebit Delta */
-            ebit_delta?: number | null;
-            /** Sources */
-            sources: components["schemas"]["Source"][];
-        };
-        /** CompareResponse */
-        CompareResponse: {
-            base: components["schemas"]["AccountSummary"];
-            /** Peers */
-            peers: components["schemas"]["CompareItem"][];
-            /** Sources */
-            sources: components["schemas"]["Source"][];
-        };
-        /** Filing */
         Filing: {
-            /** Id */
-            id: string;
-            /** Date */
-            date: string;
-            /** Type */
-            type: string;
-            /** Sources */
-            sources: components["schemas"]["Source"][];
+            id?: string;
+            type?: string;
+            date?: string;
+            url?: string;
         };
-        /** FilingsResponse */
-        FilingsResponse: {
-            /** Items */
-            items: components["schemas"]["Filing"][];
-            /** Next Cursor */
-            next_cursor?: string | null;
-            /**
-             * Has More
-             * @default false
-             */
-            has_more: boolean;
+        Citation: {
+            source?: string;
+            url?: string;
+            path?: string;
+            note?: string;
         };
-        /** HTTPValidationError */
-        HTTPValidationError: {
-            /** Detail */
-            detail?: components["schemas"]["ValidationError"][];
+        AccountsResponse: {
+            accounts?: Record<string, never>;
+            citations?: components["schemas"]["Citation"][];
         };
-        /** SearchItem */
-        SearchItem: {
-            /** Cvr */
-            cvr: string;
-            /** Name */
-            name: string;
-            /** Snippet */
-            snippet?: string | null;
-            /** Sources */
-            sources: components["schemas"]["Source"][];
-        };
-        /** SearchResponse */
-        SearchResponse: {
-            /** Items */
-            items: components["schemas"]["SearchItem"][];
-            /** Next Cursor */
-            next_cursor?: string | null;
-            /**
-             * Has More
-             * @default false
-             */
-            has_more: boolean;
-        };
-        /** Source */
-        Source: {
-            /**
-             * Url
-             * Format: uri
-             */
-            url: string;
-            /** Label */
-            label: string;
-            /**
-             * Accessed At
-             * Format: date-time
-             */
-            accessed_at: string;
-        };
-        /** ValidationError */
-        ValidationError: {
-            /** Location */
-            loc: (string | number)[];
-            /** Message */
-            msg: string;
-            /** Error Type */
-            type: string;
+        CompareResponse: {
+            current_period?: string;
+            previous_period?: string;
+            key_changes?: Record<string, never>[];
+            narrative?: string;
+            sources?: components["schemas"]["Citation"][];
         };
     };
-    responses: never;
+    responses: {
+        /** @description Authentication required */
+        UnauthorizedError: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    detail?: {
+                        code?: string;
+                        message?: string;
+                    };
+                };
+            };
+        };
+        /** @description Resource not found */
+        NotFoundError: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    detail?: string;
+                };
+            };
+        };
+        /** @description Rate limit exceeded */
+        RateLimitError: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    detail?: string;
+                };
+            };
+        };
+    };
     parameters: never;
     requestBodies: never;
     headers: never;
@@ -262,13 +202,9 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    search_v1_search_get: {
+    health_check: {
         parameters: {
-            query: {
-                q: string;
-                limit?: number;
-                cursor?: string | null;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
@@ -281,128 +217,182 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SearchResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": {
+                        status?: string;
+                        provider?: string;
+                    };
                 };
             };
         };
     };
-    company_v1_company__cvr__get: {
+    readiness_check: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Service Ready */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        status?: string;
+                    };
+                };
+            };
+            /** @description Service Not Ready */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail?: string;
+                    };
+                };
+            };
+        };
+    };
+    search_companies: {
+        parameters: {
+            query: {
+                /** @description Search query */
+                q: string;
+                /** @description Maximum number of results */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Search Results */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items?: components["schemas"]["Company"][];
+                        citations?: components["schemas"]["Citation"][];
+                    };
+                };
+            };
+            401: components["responses"]["UnauthorizedError"];
+            429: components["responses"]["RateLimitError"];
+        };
+    };
+    get_company: {
         parameters: {
             query?: never;
             header?: never;
             path: {
+                /** @description CVR number */
                 cvr: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Successful Response */
+            /** @description Company Details */
             200: {
                 headers: {
+                    ETag?: string;
+                    "Cache-Control"?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["Company"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Not Modified */
+            304: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
+                content?: never;
             };
+            401: components["responses"]["UnauthorizedError"];
+            404: components["responses"]["NotFoundError"];
+            429: components["responses"]["RateLimitError"];
         };
     };
-    filings_v1_filings__cvr__get: {
+    list_filings: {
         parameters: {
             query?: {
+                /** @description Maximum number of results */
                 limit?: number;
-                cursor?: string | null;
             };
             header?: never;
             path: {
+                /** @description CVR number */
                 cvr: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Successful Response */
+            /** @description Company Filings */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["FilingsResponse"];
+                    "application/json": {
+                        filings?: components["schemas"]["Filing"][];
+                        citations?: components["schemas"]["Citation"][];
+                    };
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            401: components["responses"]["UnauthorizedError"];
+            429: components["responses"]["RateLimitError"];
         };
     };
-    accounts_latest_v1_accounts_latest__cvr__get: {
+    get_latest_accounts: {
         parameters: {
             query?: never;
             header?: never;
             path: {
+                /** @description CVR number */
                 cvr: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Successful Response */
+            /** @description Latest Accounts */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AccountSummary"];
+                    "application/json": components["schemas"]["AccountsResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            401: components["responses"]["UnauthorizedError"];
+            404: components["responses"]["NotFoundError"];
+            429: components["responses"]["RateLimitError"];
         };
     };
-    compare_v1_compare__cvr__get: {
+    compare_accounts: {
         parameters: {
             query?: never;
             header?: never;
             path: {
+                /** @description CVR number */
                 cvr: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Successful Response */
+            /** @description Account Comparison */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -411,66 +401,9 @@ export interface operations {
                     "application/json": components["schemas"]["CompareResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    compare_export_v1_compare__cvr__export_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                cvr: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    health_health_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
+            401: components["responses"]["UnauthorizedError"];
+            404: components["responses"]["NotFoundError"];
+            429: components["responses"]["RateLimitError"];
         };
     };
 }
