@@ -10,8 +10,15 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class CVRApiProvider(Provider):
-    def __init__(self, base_url: str, token: str | None = None, user: str | None = None, password: str | None = None):
+    def __init__(
+        self,
+        base_url: str,
+        token: str | None = None,
+        user: str | None = None,
+        password: str | None = None,
+    ):
         self.base_url = base_url.rstrip("/")
         self.token = token
         self.user = user
@@ -23,11 +30,11 @@ class CVRApiProvider(Provider):
         if self.user and self.password:
             auth = httpx.BasicAuth(self.user, self.password)
         self._client = httpx.AsyncClient(
-            timeout=httpx.Timeout(10.0, read=10.0, connect=5.0), 
+            timeout=httpx.Timeout(10.0, read=10.0, connect=5.0),
             auth=auth,
-            limits=httpx.Limits(max_keepalive_connections=10, max_connections=20)
+            limits=httpx.Limits(max_keepalive_connections=10, max_connections=20),
         )
-    
+
     def _check_rate_limit(self, endpoint: str) -> bool:
         """Check if we're within rate limits for an endpoint."""
         key = f"rate_limit_{endpoint}"
@@ -44,14 +51,14 @@ class CVRApiProvider(Provider):
             data = self._cache[key]
             data["x_cache"] = "hit"
             return data
-        
+
         # Check rate limit
         if not self._check_rate_limit("search"):
-            raise RuntimeError(ErrorPayload(
-                code=ErrorCode.RATE_LIMIT, 
-                message="Rate limit exceeded", 
-                retry_after=60
-            ).model_dump())
+            raise RuntimeError(
+                ErrorPayload(
+                    code=ErrorCode.RATE_LIMIT, message="Rate limit exceeded", retry_after=60
+                ).model_dump()
+            )
         # CVR Indeks: POST {base}/virksomhed/_search with ES-like body
         url = f"{self.base_url.rstrip('/')}/virksomhed/_search"
         headers: Dict[str, str] = {"Content-Type": "application/json"}
@@ -66,8 +73,19 @@ class CVRApiProvider(Provider):
                         [{"term": {"Vrvirksomhed.cvrNummer": q}}]
                         if is_cvr
                         else [
-                            {"match_phrase_prefix": {"Vrvirksomhed.virksomhedMetadata.nyesteNavn.navn": q}},
-                            {"match": {"Vrvirksomhed.virksomhedMetadata.nyesteNavn.navn": {"query": q, "operator": "and"}}},
+                            {
+                                "match_phrase_prefix": {
+                                    "Vrvirksomhed.virksomhedMetadata.nyesteNavn.navn": q
+                                }
+                            },
+                            {
+                                "match": {
+                                    "Vrvirksomhed.virksomhedMetadata.nyesteNavn.navn": {
+                                        "query": q,
+                                        "operator": "and",
+                                    }
+                                }
+                            },
                         ]
                     ),
                     "minimum_should_match": 1,
@@ -87,29 +105,48 @@ class CVRApiProvider(Provider):
                 cvr = str(v.get("cvrNummer") or "")
                 md = v.get("virksomhedMetadata") or {}
                 newest_name = (md.get("nyesteNavn") or {}).get("navn")
-                name = newest_name or (v.get("navne") or [{}])[0].get("navn") if isinstance(v.get("navne"), list) else newest_name
-                status = (v.get("virksomhedsstatus") or {}).get("status") or md.get("sammensatStatus")
+                name = (
+                    newest_name or (v.get("navne") or [{}])[0].get("navn")
+                    if isinstance(v.get("navne"), list)
+                    else newest_name
+                )
+                status = (v.get("virksomhedsstatus") or {}).get("status") or md.get(
+                    "sammensatStatus"
+                )
                 if cvr and name:
                     items.append({"cvr": cvr, "name": name, "status": status})
             accessed_at = datetime.utcnow().isoformat() + "Z"
             citation = Citation(
-                url=url,
-                label="CVR Virksomhedsregister",
-                accessed_at=accessed_at,
-                type="api"
+                url=url, label="CVR Virksomhedsregister", accessed_at=accessed_at, type="api"
             )
             data = {"items": items[:limit], "citations": [citation.model_dump()]}
             self._cache[key] = data
-            out = dict(data); out["x_cache"] = "miss"; return out
+            out = dict(data)
+            out["x_cache"] = "miss"
+            return out
         except httpx.HTTPStatusError as e:
             logger.error(f"CVR search failed: {e.response.status_code} {e.response.text}")
             if e.response.status_code == 429:
-                raise RuntimeError(ErrorPayload(code=ErrorCode.RATE_LIMIT, message="CVR API rate limit exceeded", retry_after=60).model_dump())
+                raise RuntimeError(
+                    ErrorPayload(
+                        code=ErrorCode.RATE_LIMIT,
+                        message="CVR API rate limit exceeded",
+                        retry_after=60,
+                    ).model_dump()
+                )
             else:
-                raise RuntimeError(ErrorPayload(code=ErrorCode.UPSTREAM_ERROR, message="CVR API unavailable").model_dump())
+                raise RuntimeError(
+                    ErrorPayload(
+                        code=ErrorCode.UPSTREAM_ERROR, message="CVR API unavailable"
+                    ).model_dump()
+                )
         except Exception as e:
             logger.error(f"CVR search error: {e}")
-            raise RuntimeError(ErrorPayload(code=ErrorCode.PROVIDER_DOWN, message="CVR service unavailable").model_dump())
+            raise RuntimeError(
+                ErrorPayload(
+                    code=ErrorCode.PROVIDER_DOWN, message="CVR service unavailable"
+                ).model_dump()
+            )
 
     async def get_company(self, cvr: str) -> dict:
         key = ("company", cvr)
@@ -117,14 +154,14 @@ class CVRApiProvider(Provider):
             data = self._cache[key]
             data["x_cache"] = "hit"
             return data
-        
+
         # Check rate limit
         if not self._check_rate_limit("company"):
-            raise RuntimeError(ErrorPayload(
-                code=ErrorCode.RATE_LIMIT, 
-                message="Rate limit exceeded", 
-                retry_after=60
-            ).model_dump())
+            raise RuntimeError(
+                ErrorPayload(
+                    code=ErrorCode.RATE_LIMIT, message="Rate limit exceeded", retry_after=60
+                ).model_dump()
+            )
         url = f"{self.base_url.rstrip('/')}/virksomhed/_search"
         headers: Dict[str, str] = {"Content-Type": "application/json"}
         if self.token:
@@ -157,21 +194,25 @@ class CVRApiProvider(Provider):
                 "text": hb.get("branchetekst") if isinstance(hb, dict) else None,
             }
             addr = md.get("nyesteBeliggenhedsadresse") or {}
+
             def build_street(a: Dict[str, Any]) -> str:
                 vej = a.get("vejnavn") or ""
                 nr = str(a.get("husnummerFra") or "").strip()
                 bogstav = (a.get("bogstavFra") or "").strip()
                 comp = " ".join(x for x in [nr + (bogstav or "")] if x)
                 return (vej + (" " + comp if comp else "")).strip()
+
             addresses = []
             if addr:
-                addresses.append({
-                    "type": "business",
-                    "street": build_street(addr),
-                    "city": addr.get("postdistrikt") or addr.get("bynavn"),
-                    "zip": str(addr.get("postnummer") or ""),
-                    "country": addr.get("landekode"),
-                })
+                addresses.append(
+                    {
+                        "type": "business",
+                        "street": build_street(addr),
+                        "city": addr.get("postdistrikt") or addr.get("bynavn"),
+                        "zip": str(addr.get("postnummer") or ""),
+                        "country": addr.get("landekode"),
+                    }
+                )
             company = {
                 "cvr": str(v.get("cvrNummer") or cvr),
                 "name": name or "",
@@ -182,20 +223,29 @@ class CVRApiProvider(Provider):
             }
             accessed_at = datetime.utcnow().isoformat() + "Z"
             citation = Citation(
-                url=url,
-                label="CVR Virksomhedsregister",
-                accessed_at=accessed_at,
-                type="api"
+                url=url, label="CVR Virksomhedsregister", accessed_at=accessed_at, type="api"
             )
             data = {"company": company, "citations": [citation.model_dump()]}
             self._cache[key] = data
-            out = dict(data); out["x_cache"] = "miss"; return out
+            out = dict(data)
+            out["x_cache"] = "miss"
+            return out
         except httpx.HTTPStatusError as e:
             logger.error(f"CVR company lookup failed: {e.response.status_code} {e.response.text}")
             if e.response.status_code == 429:
-                raise RuntimeError(ErrorPayload(code=ErrorCode.RATE_LIMIT, message="CVR API rate limit exceeded", retry_after=60).model_dump())
+                raise RuntimeError(
+                    ErrorPayload(
+                        code=ErrorCode.RATE_LIMIT,
+                        message="CVR API rate limit exceeded",
+                        retry_after=60,
+                    ).model_dump()
+                )
             else:
-                raise RuntimeError(ErrorPayload(code=ErrorCode.UPSTREAM_ERROR, message="CVR API unavailable").model_dump())
+                raise RuntimeError(
+                    ErrorPayload(
+                        code=ErrorCode.UPSTREAM_ERROR, message="CVR API unavailable"
+                    ).model_dump()
+                )
         except FileNotFoundError:
             raise
         except Exception as e:
@@ -207,28 +257,34 @@ class CVRApiProvider(Provider):
                     "name": "Novo Nordisk A/S",
                     "status": "NORMAL",
                     "industry": {"code": "210000", "text": "Fremstilling af farmaceutiske råvarer"},
-                    "addresses": [{
-                        "type": "business",
-                        "street": "Novo Allé 1",
-                        "city": "Bagsværd",
-                        "zip": "2880",
-                        "country": "DK"
-                    }],
-                    "officers": []
+                    "addresses": [
+                        {
+                            "type": "business",
+                            "street": "Novo Allé 1",
+                            "city": "Bagsværd",
+                            "zip": "2880",
+                            "country": "DK",
+                        }
+                    ],
+                    "officers": [],
                 }
                 accessed_at = datetime.utcnow().isoformat() + "Z"
                 citation = Citation(
                     url="https://datacvr.virk.dk/data/enhed/virksomhed/25052943",
                     label="CVR Virksomhedsregister (fallback)",
                     accessed_at=accessed_at,
-                    type="api"
+                    type="api",
                 )
                 return {
                     "company": fallback_company,
                     "citations": [citation.model_dump()],
-                    "x_cache": "fallback"
+                    "x_cache": "fallback",
                 }
-            raise RuntimeError(ErrorPayload(code=ErrorCode.PROVIDER_DOWN, message="CVR service unavailable").model_dump())
+            raise RuntimeError(
+                ErrorPayload(
+                    code=ErrorCode.PROVIDER_DOWN, message="CVR service unavailable"
+                ).model_dump()
+            )
 
     async def list_filings(self, cvr: str, limit: int = 10) -> dict:
         key = ("filings", cvr, limit)
@@ -246,7 +302,9 @@ class CVRApiProvider(Provider):
             if r.status_code == 404:
                 data = {"filings": [], "citations": [{"source": "api", "url": url}]}
                 self._cache[key] = data
-                out = dict(data); out["x_cache"] = "miss"; return out
+                out = dict(data)
+            out["x_cache"] = "miss"
+            return out
             r.raise_for_status()
             payload = r.json() or {}
             filings_src: List[Dict[str, Any]] = payload.get("filings") or payload.get("items") or []
@@ -261,9 +319,15 @@ class CVRApiProvider(Provider):
             ][:limit]
             data = {"filings": filings, "citations": [{"source": "api", "url": url}]}
             self._cache[key] = data
-            out = dict(data); out["x_cache"] = "miss"; return out
+            out = dict(data)
+            out["x_cache"] = "miss"
+            return out
         except httpx.HTTPStatusError as e:
-            raise httpx.HTTPStatusError(f"Upstream filings failed: {e.response.text}", request=e.request, response=e.response)
+            raise httpx.HTTPStatusError(
+                f"Upstream filings failed: {e.response.text}",
+                request=e.request,
+                response=e.response,
+            )
         except Exception as e:
             # return empty but cite attempted URL
             return {"filings": [], "citations": [{"source": "api", "url": url, "note": str(e)}]}
@@ -282,7 +346,9 @@ class CVRApiProvider(Provider):
             if r1.status_code == 200:
                 payload = r1.json() or {}
                 accounts = payload.get("accounts") or payload
-                if isinstance(accounts, dict) and (accounts.get("current") or accounts.get("previous")):
+                if isinstance(accounts, dict) and (
+                    accounts.get("current") or accounts.get("previous")
+                ):
                     return {"accounts": accounts, "citations": [{"source": "api", "url": url1}]}
         except Exception:
             pass
@@ -293,8 +359,10 @@ class CVRApiProvider(Provider):
             r2 = await self._client.get(url2, headers=headers)
             if r2.status_code == 200:
                 fx = r2.json() or {}
+
                 def build_period(src: Dict[str, Any]) -> Dict[str, Any]:
-                    if not src: return {}
+                    if not src:
+                        return {}
                     return {
                         "period": {"year": src.get("year")},
                         "pl": {
@@ -307,8 +375,11 @@ class CVRApiProvider(Provider):
                             "current_assets": src.get("CurrentAssets"),
                             "current_liabilities": src.get("CurrentLiabilities"),
                         },
-                        "citations": [{"type": "ixbrl", "url": src.get("source_url")}] if src.get("source_url") else [],
+                        "citations": [{"type": "ixbrl", "url": src.get("source_url")}]
+                        if src.get("source_url")
+                        else [],
                     }
+
                 accounts = {
                     "current": build_period(fx.get("current") or {}),
                     "previous": build_period(fx.get("previous") or {}),

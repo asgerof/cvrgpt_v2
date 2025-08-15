@@ -1,5 +1,4 @@
 import os
-import json
 import httpx
 
 
@@ -29,5 +28,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-

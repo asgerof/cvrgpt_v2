@@ -1,16 +1,20 @@
-import json, pathlib
+import json
+import pathlib
 from .base import Provider
 
 FIX = pathlib.Path(__file__).parents[1] / "fixtures"
+
 
 class FixtureProvider(Provider):
     async def search_companies(self, q: str, limit: int = 10) -> dict:
         items = []
         for p in (FIX / "companies").glob("*.json"):
             data = json.loads(p.read_text(encoding="utf-8"))
-            name = data.get("name","")
-            if q.lower() in name.lower() or q in data.get("cvr",""):
-                items.append({"cvr": data["cvr"], "name": data["name"], "status": data.get("status","")})
+            name = data.get("name", "")
+            if q.lower() in name.lower() or q in data.get("cvr", ""):
+                items.append(
+                    {"cvr": data["cvr"], "name": data["name"], "status": data.get("status", "")}
+                )
         return {"items": items[:limit], "citations": [{"source": "fixtures"}]}
 
     async def get_company(self, cvr: str) -> dict:
