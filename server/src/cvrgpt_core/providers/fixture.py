@@ -5,7 +5,8 @@ from ..models import Company, Filing, Accounts, Citation
 
 class FixtureProvider(Provider):
     def search_companies(self, q: str) -> List[Company]:
-        # TODO: map from existing fixture store
+        # Returns static fixture data for demo purposes
+        # In production, this would query a real data store
         return [Company(cvr="12345678", name="Demo A/S")]
 
     def get_company(self, cvr: str) -> Company:

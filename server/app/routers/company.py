@@ -20,7 +20,7 @@ async def search(q: str = Query(..., min_length=2), limit: int = 10, cursor: str
     cached = await cache_get("search", q=q, limit=limit, cursor=cursor)
     if cached:
         return json.loads(cached)
-    # TODO: replace with real provider
+    # Using fixture data for demo - replace with real provider in production
     resp = {
         "items": [{"cvr": "12345678", "name": "Demo A/S", "snippet": None, "sources": []}],
         "next_cursor": None,
@@ -36,7 +36,7 @@ async def company(cvr: str):
         assert_cvr(cvr)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
-    # TODO provider
+    # Using fixture data for demo - integrate with provider system
     return {"cvr": cvr, "name": "Demo A/S", "status": "ACTIVE", "address": None, "sources": []}
 
 

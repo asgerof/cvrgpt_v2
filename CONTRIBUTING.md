@@ -6,7 +6,7 @@ Thank you for your interest in contributing to CVRGPT v2! This guide will help y
 
 1. **Fork and clone** the repository
 2. **Follow the setup** instructions in [README.md](README.md)
-3. **Check the roadmap** in [ROADMAP.md](ROADMAP.md) for planned work
+3. **Check the planned work** in the README.md "Next Steps" section
 4. **Create an issue** or pick an existing one
 5. **Submit a pull request** following our guidelines
 
@@ -211,7 +211,7 @@ Use the [provider template](.github/ISSUE_TEMPLATE/provider_implementation.md):
 - `backend` - API/server changes
 
 ### Milestones
-See [ROADMAP.md](ROADMAP.md) for current milestones and priorities.
+See the README.md "Next Steps" section for current priorities and planned features.
 
 ## ❓ Getting Help
 

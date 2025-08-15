@@ -106,17 +106,7 @@ curl -H "x-api-key: your-api-key" http://localhost:8000/v1/search?q=company
 ✅ **Quality Gates**: Pre-commit hooks, ruff, mypy, pytest, 95%+ test coverage
 ✅ **Developer Experience**: Hot reload, typed hooks, comprehensive error handling
 
-## API Endpoints
 
-| Endpoint | Description | Response |
-|----------|-------------|----------|
-| `GET /companies/search?q={query}` | Search companies | List of companies |
-| `GET /companies/{cvr}` | Company details | Full company profile |
-| `GET /companies/{cvr}/filings` | Recent filings | Filing list |
-| `GET /companies/{cvr}/accounts/latest` | Latest accounts | Financial data (cached 6h) |
-| `GET /companies/{cvr}/accounts/compare` | Compare accounts | Comparison with deltas |
-
-**Rate Limits**: Search (60/min), Company (120/min), Accounts (30/min)
 
 ## Project Structure
 
