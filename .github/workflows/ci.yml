@@ -1,42 +1,25 @@
 name: CI
-
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-
+on: [push, pull_request]
 jobs:
-  server-tests:
+  backend:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: server
+    defaults: { run: { working-directory: server } }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Install deps
-        run: |
-          python -m venv .venv
-          source .venv/bin/activate
-          pip install -r requirements.txt
-      - name: Run tests
-        run: |
-          source .venv/bin/activate
-          pytest -q
-
-  frontend-build:
+        with: { python-version: "3.11" }
+      - run: pip install --upgrade pip
+      - run: pip install . || true
+      - run: pip install fastapi uvicorn[standard] httpx tenacity pybreaker slowapi redis "redis[hiredis]" structlog prometheus-client pytest pytest-asyncio respx httpx pytest-cov ruff mypy
+      - run: ruff check .
+      - run: mypy app
+      - run: pytest -q --cov=app
+  frontend:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
+    defaults: { run: { working-directory: frontend } }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Install and build
-        run: |
-          npm ci || npm i
-          npm run build
+        with: { node-version: "20" }
+      - run: npm ci
+      - run: npm run build
