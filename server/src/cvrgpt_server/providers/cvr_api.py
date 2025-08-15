@@ -24,8 +24,12 @@ class CVRApiProvider(Provider):
         self.user = user
         self.password = password
         # Enhanced caching with longer TTL for production
-        self._cache = TTLCache(maxsize=1000, ttl=3600)  # 1 hour TTL, larger cache
-        self._rate_limit_cache = TTLCache(maxsize=100, ttl=60)  # Rate limit tracking
+        self._cache: TTLCache[Any, dict] = TTLCache(
+            maxsize=1000, ttl=3600
+        )  # 1 hour TTL, larger cache
+        self._rate_limit_cache: TTLCache[str, float] = TTLCache(
+            maxsize=100, ttl=60
+        )  # Rate limit tracking
         auth = None
         if self.user and self.password:
             auth = httpx.BasicAuth(self.user, self.password)

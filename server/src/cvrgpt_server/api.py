@@ -74,20 +74,22 @@ async def request_id_middleware(request: Request, call_next):
 async def http_exception_handler(request: Request, exc: HTTPException):
     # Normalize error payloads
     code = (
-        "BAD_REQUEST"
+        ErrorCode.BAD_REQUEST
         if exc.status_code == 400
         else (
-            "NOT_FOUND"
+            ErrorCode.NOT_FOUND
             if exc.status_code == 404
-            else ("UPSTREAM_ERROR" if exc.status_code == 502 else "ERROR")
+            else (ErrorCode.UPSTREAM_ERROR if exc.status_code == 502 else ErrorCode.UPSTREAM_ERROR)
         )
     )
+    message = "An error occurred"
     detail = None
     if isinstance(exc.detail, dict) and exc.detail.get("detail"):
         detail = exc.detail.get("detail")
+        message = detail or message
     elif isinstance(exc.detail, str):
-        detail = exc.detail
-    payload = ErrorPayload(code=code, detail=detail).model_dump()
+        message = exc.detail
+    payload = ErrorPayload(code=code, message=message, detail=detail).model_dump()
     return JSONResponse(status_code=exc.status_code, content=payload)
 
 
@@ -97,7 +99,7 @@ async def health():
 
 
 @app.get("/v1/search", response_model=models.SearchResponse)
-async def search(q: str, limit: int = 10, response: Response = None):
+async def search(q: str, limit: int = 10, response: Response | None = None):
     prov = get_provider()
     try:
         data = await prov.search_companies(q, limit)
@@ -110,7 +112,7 @@ async def search(q: str, limit: int = 10, response: Response = None):
 
 
 @app.get("/v1/company/{cvr}", response_model=models.CompanyResponse)
-async def company(cvr: str, response: Response = None):
+async def company(cvr: str, response: Response | None = None):
     prov = get_provider()
     try:
         data = await prov.get_company(cvr)

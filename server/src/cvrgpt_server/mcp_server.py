@@ -67,9 +67,7 @@ if __name__ == "__main__":
 
     mode = sys.argv[1] if len(sys.argv) > 1 else "stdio"
     if mode == "stdio":
-        from mcp.server.fastmcp import stdio_server
-
-        asyncio.run(stdio_server(mcp))
+        asyncio.run(mcp.run_stdio_async())
     elif mode == "sse":
         import uvicorn
         from fastapi import FastAPI
