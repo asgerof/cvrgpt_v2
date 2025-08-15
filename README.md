@@ -27,7 +27,7 @@ cp .env.example .env.local
 
 # Start API server
 $env:PYTHONPATH = "src"
-uvicorn cvrgpt_api.api:app --reload --port 8000
+uvicorn cvrgpt_server.api:app --reload --port 8000
 ```
 
 ### Frontend Setup
@@ -60,7 +60,7 @@ make test
 
 ```mermaid
 flowchart LR
-  UI[Next.js UI<br/>Typed Client] -- REST --> API[FastAPI<br/>cvrgpt_api]
+  UI[Next.js UI<br/>Typed Client] -- REST --> API[FastAPI<br/>cvrgpt_server]
   API -- calls --> CORE[cvrgpt_core<br/>Domain Models<br/>Services<br/>Providers]
   API -- cache --> Redis[(Redis)]
   CORE -- provider --> Fixture[Fixture Provider]
@@ -75,6 +75,26 @@ flowchart LR
     Redis
     UI
   end
+```
+
+## API Endpoints
+
+All API endpoints are versioned under `/v1/` and require an `x-api-key` header:
+
+| Endpoint | Method | Description | Response |
+|----------|---------|-------------|----------|
+| `/v1/search?q={query}` | GET | Search companies by name or CVR | `SearchResponse` |
+| `/v1/company/{cvr}` | GET | Get company details | `CompanyResponse` |
+| `/v1/filings/{cvr}` | GET | List company filings | `FilingsResponse` |
+| `/v1/accounts/latest/{cvr}` | GET | Get latest accounts | `AccountsResponse` |
+| `/v1/compare/{cvr}` | GET | Compare accounts over time | `CompareResponse` |
+| `/v1/compare/{cvr}/export` | GET | Export comparison as CSV | CSV file |
+| `/healthz` | GET | Health check | `{"status": "ok"}` |
+
+### Authentication
+Set the `API_KEY` environment variable and include it in requests:
+```bash
+curl -H "x-api-key: your-api-key" http://localhost:8000/v1/search?q=company
 ```
 
 ## What Works Today
