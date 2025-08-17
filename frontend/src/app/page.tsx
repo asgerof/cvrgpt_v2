@@ -1,10 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useSearchCompanies, useCompare } from "../../lib/hooks";
 import { TCompany } from "../../lib/schemas";
 
 export default function Home() {
+  const router = useRouter();
+
+  // Redirect to chat by default
+  useEffect(() => {
+    router.push("/chat");
+  }, [router]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCompany, setSelectedCompany] = useState<TCompany | null>(null);
 
@@ -14,7 +21,7 @@ export default function Home() {
   return (
     <div className="container mx-auto p-4 max-w-4xl">
       <h1 className="text-3xl font-bold mb-6">CVRGPT - Company Search & Analysis</h1>
-      
+
       {/* Search Section */}
       <div className="mb-8">
         <label htmlFor="search" className="block text-sm font-medium mb-2">
@@ -28,7 +35,7 @@ export default function Home() {
           placeholder="Enter company name or CVR..."
           className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
-        
+
         {searchLoading && (
           <div className="mt-2 flex items-center text-gray-500" role="status" aria-live="polite">
             <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24">
@@ -52,7 +59,7 @@ export default function Home() {
             </div>
           </div>
         )}
-        
+
         {companies && companies.length > 0 && (
           <div className="mt-4 space-y-2">
             <h3 className="font-medium">Results:</h3>
@@ -78,7 +85,7 @@ export default function Home() {
           <h2 className="text-2xl font-semibold mb-4">
             Analysis for {selectedCompany.name}
           </h2>
-          
+
           {compareLoading && (
             <div className="flex items-center text-gray-500" role="status" aria-live="polite">
               <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24">
@@ -102,11 +109,11 @@ export default function Home() {
               </div>
             </div>
           )}
-          
+
           {comparison && (
             <div className="bg-gray-50 p-6 rounded-lg">
               <h3 className="text-lg font-medium mb-4">Financial Comparison</h3>
-              
+
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <h4 className="font-medium mb-2">Current Year ({comparison.a.year})</h4>
@@ -116,7 +123,7 @@ export default function Home() {
                     <div>Equity: {formatCurrency(comparison.a.equity)}</div>
                   </div>
                 </div>
-                
+
                 <div>
                   <h4 className="font-medium mb-2">Previous Year ({comparison.b.year})</h4>
                   <div className="space-y-1 text-sm">
@@ -126,7 +133,7 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="mt-6">
                 <h4 className="font-medium mb-2">Changes</h4>
                 <div className="space-y-1 text-sm">

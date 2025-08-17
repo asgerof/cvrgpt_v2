@@ -91,6 +91,60 @@ All API endpoints are versioned under `/v1/` and require an `x-api-key` header:
 | `/v1/compare/{cvr}/export` | GET | Export comparison as CSV | CSV file |
 | `/healthz` | GET | Health check | `{"status": "ok"}` |
 
+### Chat Interface
+
+The chat interface provides a conversational way to explore company data with structured responses:
+
+| Endpoint | Method | Description | Response |
+|----------|---------|-------------|----------|
+| `/chat` | POST | Chat with structured blocks | `ChatResponse` |
+| `/chat/export?thread_id={id}` | GET | Export last table as CSV | CSV file |
+
+**Environment variables (frontend):**
+- `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000`
+- `NEXT_PUBLIC_API_KEY=dev-key` (match your backend dev key)
+
+**Environment variables (backend):**
+- `LLM_ENABLED=false` (MVP uses deterministic parsing)
+- Optionally later:
+  - `LLM_PROVIDER=openai`
+  - `LLM_MODEL=gpt-4o-mini`
+  - `OPENAI_API_KEY=...`
+
+**Usage example:**
+```bash
+POST /chat
+{
+  "messages": [{ "role": "user", "content": "Revenue for Maersk 2023" }]
+}
+
+Response:
+{
+  "thread_id": "...",
+  "blocks": [
+    {
+      "type": "table",
+      "caption": "Financials for 12345678",
+      "columns": ["Year", "Revenue", "EBIT", "EBITDA", "Net income", "Equity", "Employees"],
+      "rows": [["2023", "1000000", "150000", "150000", "100000", "500000", "—"]],
+      "footnote": "All figures as reported in CVR. Year = reporting year."
+    }
+  ]
+}
+```
+
+**Export example:**
+```bash
+GET /chat/export?thread_id=...
+-> text/csv attachment of the last table in the thread
+```
+
+**Frontend:** Chat interface is available at `/chat` with:
+- Structured response blocks (text, cards, tables, choices)
+- Choice handling for company disambiguation
+- CSV export of tables
+- Loading states and error handling
+
 ### Authentication
 Set the `API_KEY` environment variable and include it in requests:
 ```bash
@@ -102,6 +156,7 @@ curl -H "X-API-Key: $API_KEY" "http://localhost:8000/v1/search?q=maersk&limit=10
 ✅ **Clean Architecture**: Pure domain package (`cvrgpt_core`) with no framework dependencies
 ✅ **Typed APIs**: FastAPI with Pydantic models, full OpenAPI docs
 ✅ **Modern Frontend**: Next.js with React Query, Zod validation, TypeScript
+✅ **Chat Interface**: Conversational UI with structured responses (cards, tables, choices)
 ✅ **Production Ready**: Caching, rate limiting, CORS, structured logging, error boundaries
 ✅ **Quality Gates**: Pre-commit hooks, ruff, mypy, pytest, 95%+ test coverage
 ✅ **Developer Experience**: Hot reload, typed hooks, comprehensive error handling

@@ -28,6 +28,7 @@ from .providers.base import CompositeProvider
 from .services.compare import compare_accounts_snapshots
 from .mcp_server import mcp
 from . import models
+from .chat.router import router as chat_router
 from .errors import (
     ErrorPayload,
     ErrorCode,
@@ -383,3 +384,6 @@ async def export_comparison(cvr: str, format: str = "csv"):
 
 # Include the versioned API router at the end
 app.include_router(api_v1)
+
+# Include the chat router
+app.include_router(chat_router)
