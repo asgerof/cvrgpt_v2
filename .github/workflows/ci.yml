@@ -21,10 +21,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
       - name: Install dependencies
         run: |
           cd server
+          pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest-cov
       - name: Run linting and type checking
@@ -36,10 +37,11 @@ jobs:
       - name: Run tests
         run: |
           cd server
-          PYTHONPATH=src pytest --maxfail=1 --disable-warnings tests/test_auth.py tests/test_probes.py tests/test_rate_limit.py tests/test_cache.py tests/test_http.py tests/test_logging.py -v
-        env:
-          CVRGPT_REDIS_URL: redis://localhost:6379/0
-          CVRGPT_ENDPOINT_API_KEY: test-key
+          export PYTHONPATH=src
+          export CVRGPT_REDIS_URL=redis://localhost:6379/0
+          export CVRGPT_ENDPOINT_API_KEY=test-key
+          export API_KEY=test-key
+          pytest --maxfail=5 --disable-warnings -v tests/test_auth.py tests/test_probes.py tests/test_rate_limit.py tests/test_cache.py tests/test_http.py tests/test_logging.py tests/chat/test_chat_api.py
 
   frontend:
     runs-on: ubuntu-latest

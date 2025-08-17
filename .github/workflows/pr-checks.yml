@@ -7,10 +7,20 @@ jobs:
   backend-checks:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: server } }
+    services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: { python-version: "3.11" }
+        with: { python-version: "3.12" }
 
       - name: Install dependencies
         run: |
@@ -29,6 +39,9 @@ jobs:
       - name: Run tests
         run: |
           export PYTHONPATH=src
+          export CVRGPT_REDIS_URL=redis://localhost:6379/0
+          export CVRGPT_ENDPOINT_API_KEY=test-key
+          export API_KEY=test-key
           pytest --cov=src --cov-report=xml
 
       - name: Upload coverage
@@ -74,7 +87,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: { python-version: "3.11" }
+        with: { python-version: "3.12" }
       - uses: actions/setup-node@v4
         with: { node-version: "20" }
 
@@ -94,7 +107,9 @@ jobs:
           cd server
           export PYTHONPATH=src
           export API_KEY=test-key
+          export CVRGPT_ENDPOINT_API_KEY=test-key
           export REDIS_URL=redis://localhost:6379/0
+          export CVRGPT_REDIS_URL=redis://localhost:6379/0
           uvicorn cvrgpt_api.api:app --host 0.0.0.0 --port 8000 &
           sleep 5
 
@@ -102,6 +117,7 @@ jobs:
         run: |
           curl -f -H "x-api-key: test-key" http://localhost:8000/healthz
           curl -f -H "x-api-key: test-key" "http://localhost:8000/v1/search?q=test"
+          curl -f -H "x-api-key: test-key" -H "Content-Type: application/json" -d '{"messages":[{"role":"user","content":"test"}]}' http://localhost:8000/chat
 
       - name: Build frontend against running backend
         run: |
