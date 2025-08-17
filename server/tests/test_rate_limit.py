@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, patch
 from fastapi_limiter import FastAPILimiter
-from cvrgpt_server.rate_limit import init_rate_limiter
+from cvrgpt_api.rate_limit import init_rate_limiter
 
 
 @pytest.mark.asyncio
@@ -15,7 +15,7 @@ async def test_init_rate_limiter():
 def test_rate_limit_module_imports():
     """Test that rate limiting components can be imported"""
     from fastapi_limiter.depends import RateLimiter
-    from cvrgpt_server.rate_limit import init_rate_limiter
+    from cvrgpt_api.rate_limit import init_rate_limiter
 
     assert RateLimiter is not None
     assert init_rate_limiter is not None

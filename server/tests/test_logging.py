@@ -1,7 +1,7 @@
 import pytest
 import json
 from unittest.mock import Mock, patch
-from cvrgpt_server.logging import access_log_mw, setup_logging
+from cvrgpt_api.logging import access_log_mw, setup_logging
 
 
 @pytest.mark.asyncio
@@ -18,7 +18,7 @@ async def test_access_log_mw_logs_request_details():
     async def mock_call_next(request):
         return mock_response
 
-    with patch("cvrgpt_server.logging.logger.info") as mock_logger:
+    with patch("cvrgpt_api.logging.logger.info") as mock_logger:
         result = await access_log_mw(mock_request, mock_call_next)
 
         # Check that logger.info was called
@@ -56,8 +56,8 @@ async def test_access_log_mw_handles_missing_request_id():
     async def mock_call_next(request):
         return mock_response
 
-    with patch("cvrgpt_server.logging.logger.info") as mock_logger:
-        with patch("cvrgpt_server.logging.getattr", return_value=None):
+    with patch("cvrgpt_api.logging.logger.info") as mock_logger:
+        with patch("cvrgpt_api.logging.getattr", return_value=None):
             await access_log_mw(mock_request, mock_call_next)
 
         # Check that logger.info was called
@@ -86,7 +86,7 @@ def test_setup_logging_returns_logger():
 
 def test_logging_module_imports():
     """Test that logging components can be imported"""
-    from cvrgpt_server.logging import access_log_mw, setup_logging, logger
+    from cvrgpt_api.logging import access_log_mw, setup_logging, logger
 
     assert access_log_mw is not None
     assert setup_logging is not None

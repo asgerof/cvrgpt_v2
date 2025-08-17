@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, patch, Mock
 import httpx
-from cvrgpt_server.http import get_json, UpstreamError, UpstreamNotFound, client
+from cvrgpt_api.http import get_json, UpstreamError, UpstreamNotFound, client
 
 
 @pytest.mark.asyncio
@@ -139,7 +139,7 @@ async def test_get_json_server_error_exhausts_retries():
 
 def test_http_client_configuration():
     """Test that HTTP client is configured with correct timeout"""
-    from cvrgpt_server.config import settings
+    from cvrgpt_api.config import settings
 
     assert client.timeout.read == settings.request_timeout_s
     assert client.timeout.connect == settings.request_timeout_s

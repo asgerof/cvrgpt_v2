@@ -4,9 +4,8 @@ from cvrgpt_core.providers.base import Provider
 
 
 def get_provider() -> Provider:
-    provider_type = os.getenv("PROVIDER", "fixture")
-    if provider_type == "fixture":
+    name = (os.getenv("CVRGPT_PROVIDER") or "fixture").lower()
+    if name == "fixture":
         return FixtureProvider()
-    else:
-        # Future: Add CVR API, RegnskabsData, and other provider implementations
-        return FixtureProvider()
+    # add real providers here later
+    return FixtureProvider()

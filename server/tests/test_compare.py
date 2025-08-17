@@ -1,13 +1,24 @@
-from cvrgpt_server.services.compare import compute_ratios, compare_accounts, narrate_compare
+from cvrgpt_api.services.compare import compute_ratios, compare_accounts, narrate_compare
+
 
 def test_ratios_and_compare():
     prev = {
         "pl": {"revenue": 100.0, "ebit": 10.0},
-        "bs": {"assets": 200.0, "equity": 50.0, "current_assets": 80.0, "current_liabilities": 40.0}
+        "bs": {
+            "assets": 200.0,
+            "equity": 50.0,
+            "current_assets": 80.0,
+            "current_liabilities": 40.0,
+        },
     }
     curr = {
         "pl": {"revenue": 120.0, "ebit": 18.0},
-        "bs": {"assets": 220.0, "equity": 60.0, "current_assets": 100.0, "current_liabilities": 50.0}
+        "bs": {
+            "assets": 220.0,
+            "equity": 60.0,
+            "current_assets": 100.0,
+            "current_liabilities": 50.0,
+        },
     }
     r_prev = compute_ratios(prev)
     r_curr = compute_ratios(curr)

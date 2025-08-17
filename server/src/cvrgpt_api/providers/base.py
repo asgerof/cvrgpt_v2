@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+
 class Provider(ABC):
     @abstractmethod
     async def search_companies(self, q: str, limit: int = 10) -> dict: ...

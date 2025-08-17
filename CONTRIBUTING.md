@@ -88,7 +88,7 @@ git commit -m "docs: update API documentation"
 
 **Structure**:
 - `src/cvrgpt_core/` - Pure domain logic (no framework dependencies)
-- `src/cvrgpt_server/` - FastAPI application layer
+- `src/cvrgpt_api/` - FastAPI application layer
 - `src/cvrgpt_api/` - Alternative API implementation
 - `tests/` - Test files
 

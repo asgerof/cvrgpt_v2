@@ -1,11 +1,11 @@
 .PHONY: dev backend frontend test lint typecheck
 
 dev:
-	( cd server && .\.venv\Scripts\Activate.ps1 && $$env:PYTHONPATH="src" && uvicorn cvrgpt_server.api:app --reload --port 8000 ) & \
+	( cd server && .\.venv\Scripts\Activate.ps1 && $$env:PYTHONPATH="src" && uvicorn cvrgpt_api.api:app --reload --port 8000 ) & \
 	( cd frontend && npm run dev )
 
 backend:
-	cd server && .\.venv\Scripts\Activate.ps1 && $$env:PYTHONPATH="src" && uvicorn cvrgpt_server.api:app --reload --port 8000
+	cd server && .\.venv\Scripts\Activate.ps1 && $$env:PYTHONPATH="src" && uvicorn cvrgpt_api.api:app --reload --port 8000
 
 frontend:
 	cd frontend && npm run dev

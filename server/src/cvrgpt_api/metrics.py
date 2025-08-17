@@ -9,12 +9,15 @@ _counters: Dict[str, int] = {
     "cache_hits": 0,
 }
 
+
 def count(name: str, inc: int = 1) -> None:
     _counters[name] = _counters.get(name, 0) + inc
+
 
 @router.get("/metrics")
 async def metrics():
     return _counters
+
 
 async def timing_middleware(request: Request, call_next):
     start = perf_counter()
@@ -24,5 +27,5 @@ async def timing_middleware(request: Request, call_next):
     finally:
         duration_ms = int((perf_counter() - start) * 1000)
         # You can wire structlog here; for now, basic print:
-        print({"event":"request_completed","route":request.url.path,"duration_ms":duration_ms})
+        print({"event": "request_completed", "route": request.url.path, "duration_ms": duration_ms})
         count("requests_total", 1)

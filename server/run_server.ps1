@@ -15,7 +15,7 @@ Write-Host "🔄 Auto-reload enabled for development" -ForegroundColor Yellow
 Write-Host ""
 
 try {
-    C:\Users\asger\AppData\Local\Programs\Python\Python311\python.exe -m uvicorn cvrgpt_server.api:app --port 8000 --reload --host 0.0.0.0
+    C:\Users\asger\AppData\Local\Programs\Python\Python311\python.exe -m uvicorn cvrgpt_api.api:app --port 8000 --reload --host 0.0.0.0
 } catch {
     Write-Host "❌ Failed to start server: $_" -ForegroundColor Red
     Write-Host "💡 Make sure you're in the server directory and Redis is running" -ForegroundColor Yellow

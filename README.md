@@ -27,7 +27,7 @@ cp .env.example .env.local
 
 # Start API server
 $env:PYTHONPATH = "src"
-uvicorn cvrgpt_server.api:app --reload --port 8000
+uvicorn cvrgpt_api.api:app --reload --port 8000
 ```
 
 ### Frontend Setup
@@ -60,7 +60,7 @@ make test
 
 ```mermaid
 flowchart LR
-  UI[Next.js UI<br/>Typed Client] -- REST --> API[FastAPI<br/>cvrgpt_server]
+  UI[Next.js UI<br/>Typed Client] -- REST --> API[FastAPI<br/>cvrgpt_api]
   API -- calls --> CORE[cvrgpt_core<br/>Domain Models<br/>Services<br/>Providers]
   API -- cache --> Redis[(Redis)]
   CORE -- provider --> Fixture[Fixture Provider]

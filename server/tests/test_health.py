@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-from cvrgpt_server.api import app
+from cvrgpt_api.api import app
 
 
 def test_health():

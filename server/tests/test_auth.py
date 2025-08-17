@@ -1,11 +1,11 @@
 import pytest
 from fastapi import HTTPException
-from cvrgpt_server.security import require_api_key
+from cvrgpt_api.security import require_api_key
 
 
 def test_require_api_key_with_valid_key():
     # Use the default key from settings
-    from cvrgpt_server.config import settings
+    from cvrgpt_api.config import settings
 
     default_key = settings.endpoint_api_key
 

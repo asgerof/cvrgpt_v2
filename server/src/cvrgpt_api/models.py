@@ -77,7 +77,7 @@ class FilingsResponse(BaseModel):
 # /v1/accounts/latest/{cvr}
 class Period(BaseModel):
     start_date: Optional[str] = None  # YYYY-MM-DD
-    end_date: Optional[str] = None    # YYYY-MM-DD
+    end_date: Optional[str] = None  # YYYY-MM-DD
     year: Optional[int] = None
 
 

@@ -1,39 +1,30 @@
-import os
-import json
-from typing import Callable, Any, Dict, Tuple
+import hashlib
+import orjson
+from starlette.responses import Response
+from fastapi import Request
+from .redis_client import redis_client
 
-# Simple in-memory cache fallback when Redis is not available
-_memory_cache: Dict[str, Tuple[Any, float]] = {}
+
+def _key(prefix: str, *parts: str) -> str:
+    return prefix + ":" + ":".join(parts)
 
 
-def cache_json(key: str, ttl: int, producer: Callable[[], Any]):
-    """Cache JSON data with TTL. Falls back to memory cache if Redis unavailable."""
-    try:
-        import redis
+async def cache_get(key: str):
+    val = await redis_client.get(key)
+    return orjson.loads(val) if val else None
 
-        r = redis.Redis(
-            host=os.getenv("REDIS_HOST", "localhost"),
-            port=int(os.getenv("REDIS_PORT", "6379")),
-            db=0,
-        )
-        val = r.get(key)
-        if val and isinstance(val, (str, bytes)):
-            return json.loads(val)
-        data = producer()
-        r.setex(
-            key, ttl, json.dumps(data, default=lambda o: o.dict() if hasattr(o, "dict") else str(o))
-        )
-        return data
-    except Exception:
-        # Fallback to simple memory cache
-        import time
 
-        now = time.time()
-        if key in _memory_cache:
-            cached_data, expires_at = _memory_cache[key]
-            if now < expires_at:
-                return cached_data
+async def cache_set(key: str, data: dict, ttl: int):
+    await redis_client.set(key, orjson.dumps(data), ex=ttl)
 
-        data = producer()
-        _memory_cache[key] = (data, now + ttl)
-        return data
+
+def with_etag(request: Request, payload: dict, ttl: int) -> Response:
+    body = orjson.dumps(payload)
+    etag = hashlib.md5(body, usedforsecurity=False).hexdigest()  # nosec B324
+    inm = request.headers.get("if-none-match")
+    if inm and inm == etag:
+        return Response(status_code=304)
+    resp = Response(content=body, media_type="application/json")
+    resp.headers["ETag"] = etag
+    resp.headers["Cache-Control"] = f"public, max-age={ttl}"
+    return resp
