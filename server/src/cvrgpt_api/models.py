@@ -3,8 +3,9 @@ Pydantic response models for CVRGPT v2.
 These mirror the REST/MCP contracts to keep schema stable and self-documenting.
 """
 
+from decimal import Decimal
 from typing import List, Optional, Literal
-from pydantic import BaseModel, Field, conint
+from pydantic import BaseModel, Field, conint, ConfigDict
 
 
 class Citation(BaseModel):
@@ -86,15 +87,19 @@ class Period(BaseModel):
 
 
 class AccountsSnapshot(BaseModel):
+    model_config = ConfigDict(
+        json_encoders={Decimal: lambda v: str(v) if v is not None else None}
+    )
+    
     period: Optional[Period] = None
-    revenue: Optional[float] = None
-    ebit: Optional[float] = None  # operating profit
-    net_income: Optional[float] = None
-    assets: Optional[float] = None
-    equity: Optional[float] = None
-    cash: Optional[float] = None
-    current_assets: Optional[float] = None
-    current_liabilities: Optional[float] = None
+    revenue: Optional[Decimal] = None
+    ebit: Optional[Decimal] = None  # operating profit
+    net_income: Optional[Decimal] = None
+    assets: Optional[Decimal] = None
+    equity: Optional[Decimal] = None
+    cash: Optional[Decimal] = None
+    current_assets: Optional[Decimal] = None
+    current_liabilities: Optional[Decimal] = None
     source_anchors: List[Citation] = Field(default_factory=list)  # per-field citations
 
 
@@ -106,11 +111,15 @@ class AccountsResponse(BaseModel):
 
 # /v1/compare/{cvr}
 class AccountsDelta(BaseModel):
+    model_config = ConfigDict(
+        json_encoders={Decimal: lambda v: str(v) if v is not None else None}
+    )
+    
     field: str
-    current_value: Optional[float] = None
-    previous_value: Optional[float] = None
-    absolute_change: Optional[float] = None
-    percentage_change: Optional[float] = None
+    current_value: Optional[Decimal] = None
+    previous_value: Optional[Decimal] = None
+    absolute_change: Optional[Decimal] = None
+    percentage_change: Optional[Decimal] = None
 
 
 class CompareResponse(BaseModel):

@@ -1,5 +1,6 @@
 import json
 import pathlib
+from decimal import Decimal
 from .base import Provider
 
 FIX = pathlib.Path(__file__).parents[1] / "fixtures"
@@ -45,4 +46,21 @@ class FixtureProvider(Provider):
             return {"accounts": None, "citations": [{"source": "fixtures"}]}
         data = json.loads(p.read_text(encoding="utf-8"))
         acc = data.get("latest_accounts")
+        
+        # Convert financial values to Decimal
+        if acc:
+            for period_key in ["current", "previous"]:
+                if period_key in acc and acc[period_key]:
+                    period_data = acc[period_key]
+                    # Convert P&L values
+                    if "pl" in period_data:
+                        for key, value in period_data["pl"].items():
+                            if isinstance(value, (int, float)):
+                                period_data["pl"][key] = Decimal(str(value))
+                    # Convert balance sheet values
+                    if "bs" in period_data:
+                        for key, value in period_data["bs"].items():
+                            if isinstance(value, (int, float)):
+                                period_data["bs"][key] = Decimal(str(value))
+        
         return {"accounts": acc, "citations": [{"source": "fixtures", "path": str(p)}]}
