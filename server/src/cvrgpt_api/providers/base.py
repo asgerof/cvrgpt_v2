@@ -10,6 +10,10 @@ class Provider(ABC):
     async def list_filings(self, cvr: str, limit: int = 10) -> dict: ...
     @abstractmethod
     async def get_latest_accounts(self, cvr: str) -> dict: ...
+    
+    def ping(self) -> bool:
+        """Health check method. Override in concrete providers."""
+        return True
 
 
 class CompositeProvider(Provider):
@@ -28,3 +32,7 @@ class CompositeProvider(Provider):
 
     async def get_latest_accounts(self, cvr: str) -> dict:
         return await self.filings_provider.get_latest_accounts(cvr)
+    
+    def ping(self) -> bool:
+        """Health check - both core and filings providers must be healthy."""
+        return self.core.ping() and self.filings_provider.ping()
