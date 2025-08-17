@@ -3,6 +3,7 @@ from ..models import Citation, AccountsSnapshot, Period
 import httpx
 from datetime import datetime
 import logging
+from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 
@@ -97,12 +98,12 @@ class RegnskabProvider(Provider):
 
             current_snapshot = AccountsSnapshot(
                 period=Period(start_date="2023-01-01", end_date="2023-12-31", year=2023),
-                revenue=base_revenue,
-                ebit=base_revenue * 0.15,  # 15% EBIT margin
-                net_income=base_revenue * 0.10,  # 10% net margin
-                assets=base_revenue * 2.0,  # Asset turnover of 0.5
-                equity=base_revenue * 1.0,  # 50% equity ratio
-                cash=base_revenue * 0.3,  # 30% cash ratio
+                revenue=Decimal(str(base_revenue)),
+                ebit=Decimal(str(base_revenue * 0.15)),  # 15% EBIT margin
+                net_income=Decimal(str(base_revenue * 0.10)),  # 10% net margin
+                assets=Decimal(str(base_revenue * 2.0)),  # Asset turnover of 0.5
+                equity=Decimal(str(base_revenue * 1.0)),  # 50% equity ratio
+                cash=Decimal(str(base_revenue * 0.3)),  # 30% cash ratio
                 source_anchors=[
                     Citation(
                         url=f"https://datacvr.virk.dk/data/regnskab/{cvr}/2023",
@@ -115,12 +116,12 @@ class RegnskabProvider(Provider):
 
             previous_snapshot = AccountsSnapshot(
                 period=Period(start_date="2022-01-01", end_date="2022-12-31", year=2022),
-                revenue=base_revenue * 0.9,  # 10% growth
-                ebit=base_revenue * 0.9 * 0.12,  # Lower margin
-                net_income=base_revenue * 0.9 * 0.08,
-                assets=base_revenue * 0.9 * 2.1,
-                equity=base_revenue * 0.9 * 0.95,
-                cash=base_revenue * 0.9 * 0.25,
+                revenue=Decimal(str(base_revenue * 0.9)),  # 10% growth
+                ebit=Decimal(str(base_revenue * 0.9 * 0.12)),  # Lower margin
+                net_income=Decimal(str(base_revenue * 0.9 * 0.08)),
+                assets=Decimal(str(base_revenue * 0.9 * 2.1)),
+                equity=Decimal(str(base_revenue * 0.9 * 0.95)),
+                cash=Decimal(str(base_revenue * 0.9 * 0.25)),
                 source_anchors=[
                     Citation(
                         url=f"https://datacvr.virk.dk/data/regnskab/{cvr}/2022",

@@ -8,15 +8,16 @@ from fastapi import Request
 
 try:
     import redis  # type: ignore
+    _r = redis
 except Exception:
-    redis = None
+    _r = None
 
-REDIS_URL = os.getenv("REDIS_URL")
+REDIS_URL = os.getenv("CVRGPT_REDIS_URL")
 
 class Cache:
     def __init__(self):
         self._mem: dict[str, tuple[float, str]] = {}
-        self._r = redis.Redis.from_url(REDIS_URL) if (redis and REDIS_URL) else None
+        self._r = _r.Redis.from_url(REDIS_URL) if (_r and REDIS_URL) else None
 
     def get(self, key: str) -> Any | None:
         if self._r:

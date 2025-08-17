@@ -1,4 +1,5 @@
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Union
+from decimal import Decimal
 from ..models import AccountsSnapshot, AccountsDelta
 
 
@@ -50,7 +51,10 @@ def compare_accounts_snapshots(
             )
 
     # Sort by absolute percentage change (descending)
-    key_changes.sort(key=lambda x: abs(x.percentage_change or 0), reverse=True)
+    key_changes.sort(
+        key=lambda x: abs(x.percentage_change) if x.percentage_change is not None else 0,
+        reverse=True,
+    )
 
     # Generate narrative
     narrative_parts = []
@@ -93,17 +97,18 @@ def compare_accounts_snapshots(
     }
 
 
-def format_currency(value: Optional[float]) -> str:
+def format_currency(value: Optional[Union[float, Decimal]]) -> str:
     """Format currency values in millions/thousands."""
     if value is None:
         return "n/a"
 
-    if abs(value) >= 1_000_000:
-        return f"{value / 1_000_000:.1f}M DKK"
-    elif abs(value) >= 1_000:
-        return f"{value / 1_000:.0f}K DKK"
+    abs_value = abs(float(value))
+    if abs_value >= 1_000_000:
+        return f"{float(value) / 1_000_000:.1f}M DKK"
+    elif abs_value >= 1_000:
+        return f"{float(value) / 1_000:.0f}K DKK"
     else:
-        return f"{value:.0f} DKK"
+        return f"{float(value):.0f} DKK"
 
 
 # Legacy functions for backward compatibility
