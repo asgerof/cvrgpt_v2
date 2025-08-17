@@ -10,7 +10,9 @@ def test_health_provider_endpoint_with_fixture():
     with patch.dict(os.environ, {"DATA_PROVIDER": "fixture", "APP_ENV": "dev"}, clear=False):
         # Clear provider singleton
         import cvrgpt_api.api
+        import cvrgpt_core.providers.factory
         cvrgpt_api.api._provider_instance = None
+        cvrgpt_core.providers.factory._provider_singleton = None
         
         response = client.get("/health/provider")
         assert response.status_code == 200
@@ -33,7 +35,9 @@ def test_health_provider_endpoint_with_erst():
     }, clear=False):
         # Clear provider singleton
         import cvrgpt_api.api
+        import cvrgpt_core.providers.factory
         cvrgpt_api.api._provider_instance = None
+        cvrgpt_core.providers.factory._provider_singleton = None
         
         response = client.get("/health/provider")
         assert response.status_code == 200
@@ -56,7 +60,9 @@ def test_health_provider_endpoint_with_erst_no_credentials():
     }, clear=False):
         # Clear provider singleton
         import cvrgpt_api.api
+        import cvrgpt_core.providers.factory
         cvrgpt_api.api._provider_instance = None
+        cvrgpt_core.providers.factory._provider_singleton = None
         
         response = client.get("/health/provider")
         assert response.status_code == 200

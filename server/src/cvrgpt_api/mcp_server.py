@@ -1,10 +1,16 @@
-from mcp.server.fastmcp import FastMCP
+try:
+    from mcp.server.fastmcp import FastMCP
+    MCP_AVAILABLE = True
+except ImportError:
+    MCP_AVAILABLE = False
+    FastMCP = None
+
 from .providers.fixtures import FixtureProvider
 from .providers.cvr_api import CVRApiProvider
 from .services.compare import compare_accounts, narrate_compare
 from .config import settings
 
-mcp = FastMCP("CVRGPT")
+mcp = FastMCP("CVRGPT") if MCP_AVAILABLE else None
 
 
 def get_provider():
@@ -16,35 +22,44 @@ def get_provider():
         return FixtureProvider()
 
 
-@mcp.tool()
+def conditional_mcp_tool():
+    """Decorator that applies @mcp.tool() only if MCP is available"""
+    def decorator(func):
+        if MCP_AVAILABLE and mcp:
+            return mcp.tool()(func)
+        return func
+    return decorator
+
+
+@conditional_mcp_tool()
 async def search_companies(q: str, limit: int = 10) -> dict:
     "Search companies by name or CVR number. Returns items and citations."
     prov = get_provider()
     return await prov.search_companies(q, limit)
 
 
-@mcp.tool()
+@conditional_mcp_tool()
 async def get_company(cvr: str) -> dict:
     "Get a detailed company profile by CVR."
     prov = get_provider()
     return await prov.get_company(cvr)
 
 
-@mcp.tool()
+@conditional_mcp_tool()
 async def list_filings(cvr: str, limit: int = 10) -> dict:
     "List public filings (e.g., annual reports)."
     prov = get_provider()
     return await prov.list_filings(cvr, limit)
 
 
-@mcp.tool()
+@conditional_mcp_tool()
 async def get_latest_accounts(cvr: str) -> dict:
     "Get latest accounts (normalized summary) with previous period if available."
     prov = get_provider()
     return await prov.get_latest_accounts(cvr)
 
 
-@mcp.tool()
+@conditional_mcp_tool()
 async def compare_accounts_tool(cvr: str) -> dict:
     "Compute ratios & deltas between the last two account periods with citations and a short narrative."
     prov = get_provider()
@@ -64,6 +79,10 @@ async def compare_accounts_tool(cvr: str) -> dict:
 if __name__ == "__main__":
     import sys
     import asyncio
+
+    if not MCP_AVAILABLE or not mcp:
+        print("MCP server not available. Install mcp[cli] to enable MCP functionality.")
+        sys.exit(1)
 
     mode = sys.argv[1] if len(sys.argv) > 1 else "stdio"
     if mode == "stdio":

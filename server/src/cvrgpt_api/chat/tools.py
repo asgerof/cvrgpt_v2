@@ -1,6 +1,8 @@
 from typing import List, Dict, Any
 from decimal import Decimal
-from ..api import get_provider
+
+# Import from the new factory to avoid circular imports
+from cvrgpt_core.providers.factory import get_provider
 
 
 def _s(v):

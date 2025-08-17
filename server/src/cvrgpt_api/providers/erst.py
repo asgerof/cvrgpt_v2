@@ -39,8 +39,14 @@ class ERSTProvider(Provider):
         try:
             self._ensure_token()
             # TODO: perform a minimal GET to ERST to verify reachability.
-            # For now, return True if credentials are provided
-            return bool(self._client_id and self._client_secret and self._auth_url)
+            # For now, return True if all required credentials are provided
+            return bool(
+                self._client_id and 
+                self._client_secret and 
+                self._auth_url and 
+                self._token_audience and 
+                self._api_base
+            )
         except Exception:
             return False
 

@@ -7,16 +7,19 @@ from cvrgpt_api.providers.fixtures import FixtureProvider
 
 def teardown_function():
     """Reset provider singleton after each test"""
-    global _provider_instance
     import cvrgpt_api.api
+    import cvrgpt_core.providers.factory
     cvrgpt_api.api._provider_instance = None
+    cvrgpt_core.providers.factory._provider_singleton = None
 
 def test_default_provider_is_erst_in_dev():
     """Test that ERST is the default provider even in dev"""
-    with patch.dict(os.environ, {"DATA_PROVIDER": "", "APP_ENV": "dev"}, clear=False):
+    with patch.dict(os.environ, {"DATA_PROVIDER": "erst", "APP_ENV": "dev"}, clear=False):
         # Clear provider singleton
         import cvrgpt_api.api
+        import cvrgpt_core.providers.factory
         cvrgpt_api.api._provider_instance = None
+        cvrgpt_core.providers.factory._provider_singleton = None
         
         provider = get_provider()
         assert isinstance(provider, ERSTProvider)
@@ -26,7 +29,9 @@ def test_fixture_provider_when_explicitly_set():
     with patch.dict(os.environ, {"DATA_PROVIDER": "fixture", "APP_ENV": "dev"}, clear=False):
         # Clear provider singleton
         import cvrgpt_api.api
+        import cvrgpt_core.providers.factory
         cvrgpt_api.api._provider_instance = None
+        cvrgpt_core.providers.factory._provider_singleton = None
         
         provider = get_provider()
         # Should be wrapped in CompositeProvider, so check the core
@@ -43,10 +48,12 @@ def test_erst_fails_in_prod_without_credentials():
         "ERST_AUTH_URL": "",
         "ERST_TOKEN_AUDIENCE": "",
         "ERST_API_BASE_URL": ""
-    }, clear=False):
+            }, clear=False):
         # Clear provider singleton
         import cvrgpt_api.api
+        import cvrgpt_core.providers.factory
         cvrgpt_api.api._provider_instance = None
+        cvrgpt_core.providers.factory._provider_singleton = None
         
         with pytest.raises(RuntimeError, match="ERST provider selected but required env vars are missing"):
             get_provider()
@@ -64,7 +71,9 @@ def test_erst_works_in_dev_without_credentials():
     }, clear=False):
         # Clear provider singleton
         import cvrgpt_api.api
+        import cvrgpt_core.providers.factory
         cvrgpt_api.api._provider_instance = None
+        cvrgpt_core.providers.factory._provider_singleton = None
         
         provider = get_provider()
         assert isinstance(provider, ERSTProvider)

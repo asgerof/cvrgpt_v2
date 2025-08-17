@@ -1,10 +1,6 @@
 import os
 from typing import Protocol, Any, Dict, List
 
-# Import existing providers from the API layer
-from cvrgpt_api.providers.erst import ERSTProvider
-from cvrgpt_api.providers.fixtures import FixtureProvider
-
 class Provider(Protocol):
     def ping(self) -> bool: ...
     async def search_companies(self, q: str, limit: int = 10, offset: int = 0) -> Dict[str, Any]: ...
@@ -29,6 +25,9 @@ def get_provider() -> Provider:
     env = _app_env()
 
     if name == "erst":
+        # Import ERST provider only when needed to avoid circular imports
+        from cvrgpt_api.providers.erst import ERSTProvider
+        
         missing = [k for k in [
             "ERST_CLIENT_ID", "ERST_CLIENT_SECRET", "ERST_AUTH_URL",
             "ERST_TOKEN_AUDIENCE", "ERST_API_BASE_URL"
@@ -49,7 +48,14 @@ def get_provider() -> Provider:
         return _provider_singleton
 
     if name == "fixture":
-        _provider_singleton = FixtureProvider()
+        # Import fixture provider only when needed to avoid circular imports
+        from cvrgpt_api.providers.fixtures import FixtureProvider
+        from cvrgpt_api.providers.base import CompositeProvider
+        
+        fixture_provider = FixtureProvider()
+        _provider_singleton = CompositeProvider(
+            core=fixture_provider, filings_provider=fixture_provider
+        )
         return _provider_singleton
 
     raise RuntimeError(f"Unknown DATA_PROVIDER '{name}'. Use 'erst' or 'fixture'.")
