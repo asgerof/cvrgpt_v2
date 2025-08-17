@@ -1,17 +1,18 @@
 import json
 import os
 import time
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 import hashlib
+import types
 from starlette.responses import Response
 from fastapi import Request
 
 try:
     import redis  # type: ignore
 
-    _r = redis
+    _redis_module: Optional[types.ModuleType] = redis
 except Exception:
-    _r = None
+    _redis_module = None
 
 REDIS_URL = os.getenv("CVRGPT_REDIS_URL")
 
@@ -19,7 +20,7 @@ REDIS_URL = os.getenv("CVRGPT_REDIS_URL")
 class Cache:
     def __init__(self):
         self._mem: dict[str, tuple[float, str]] = {}
-        self._r = _r.Redis.from_url(REDIS_URL) if (_r and REDIS_URL) else None
+        self._r = _redis_module.Redis.from_url(REDIS_URL) if (_redis_module and REDIS_URL) else None
 
     def get(self, key: str) -> Any | None:
         if self._r:

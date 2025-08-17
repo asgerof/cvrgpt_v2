@@ -14,10 +14,12 @@ try:
     from fastapi_limiter import FastAPILimiter
 
     RATE_LIMITING_AVAILABLE = True
+    _RateLimiter = RateLimiter
+    _FastAPILimiter = FastAPILimiter
 except ImportError:
     RATE_LIMITING_AVAILABLE = False
-    RateLimiter = None
-    FastAPILimiter = None
+    _RateLimiter = None  # type: ignore
+    _FastAPILimiter = None  # type: ignore
 from .cache import cache_get, cache_set, with_etag, cached
 from .providers.fixtures import FixtureProvider
 from .providers.cvr_api import CVRApiProvider
@@ -40,17 +42,17 @@ import io
 
 def get_rate_limiter(times: int, seconds: int):
     """Get a rate limiter that works in both production and test environments"""
-    if not RATE_LIMITING_AVAILABLE or RateLimiter is None:
+    if not RATE_LIMITING_AVAILABLE or _RateLimiter is None:
         # Return a no-op dependency for testing
         return lambda: None
 
     # In production, check if FastAPILimiter is initialized
     def rate_limit_check():
         try:
-            if not hasattr(FastAPILimiter, "redis") or FastAPILimiter.redis is None:
+            if not hasattr(_FastAPILimiter, "redis") or _FastAPILimiter.redis is None:
                 # Rate limiting not initialized, skip silently
                 return None
-            return RateLimiter(times=times, seconds=seconds)()
+            return _RateLimiter(times=times, seconds=seconds)()
         except Exception:
             # Rate limiting failed, skip silently
             return None
