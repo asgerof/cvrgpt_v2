@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "gen:types": "openapi-typescript ../server/openapi.json -o src/types/api.d.ts"
+    "gen:types": "openapi-typescript ../server/openapi.json -o src/types/api.ts",
+    "gen:types:live": "openapi-typescript http://localhost:8000/openapi.json -o src/types/api.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.85.3",

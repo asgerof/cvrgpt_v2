@@ -5,25 +5,35 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/metrics": {
+      "get": {
+        "summary": "Metrics",
+        "operationId": "metrics_metrics_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/healthz": {
       "get": {
-        "summary": "Health Check",
-        "operationId": "health_check",
+        "summary": "Health",
+        "operationId": "health_healthz_get",
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string"
-                    },
-                    "provider": {
-                      "type": "string"
-                    }
-                  }
+                  "title": "Response Health Healthz Get"
                 }
               }
             }
@@ -33,35 +43,17 @@
     },
     "/readyz": {
       "get": {
-        "summary": "Readiness Check",
-        "operationId": "readiness_check",
+        "summary": "Readiness",
+        "operationId": "readiness_readyz_get",
         "responses": {
           "200": {
-            "description": "Service Ready",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Service Not Ready",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "detail": {
-                      "type": "string"
-                    }
-                  }
+                  "title": "Response Readiness Readyz Get"
                 }
               }
             }
@@ -71,22 +63,19 @@
     },
     "/v1/search": {
       "get": {
-        "summary": "Search Companies",
-        "operationId": "search_companies",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
+        "summary": "Search",
+        "operationId": "search_v1_search_get",
         "parameters": [
           {
             "name": "q",
             "in": "query",
             "required": true,
             "schema": {
-              "type": "string"
-            },
-            "description": "Search query"
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 100,
+              "title": "Q"
+            }
           },
           {
             "name": "limit",
@@ -94,121 +83,132 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "default": 10
-            },
-            "description": "Maximum number of results"
+              "maximum": 50,
+              "minimum": 1,
+              "default": 10,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Search Results",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Company"
-                      }
-                    },
-                    "citations": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Citation"
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/SearchResponse"
                 }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "429": {
-            "$ref": "#/components/responses/RateLimitError"
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       }
     },
     "/v1/company/{cvr}": {
       "get": {
-        "summary": "Get Company Details",
-        "operationId": "get_company",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
+        "summary": "Company",
+        "operationId": "company_v1_company__cvr__get",
         "parameters": [
           {
             "name": "cvr",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
-            },
-            "description": "CVR number"
+              "type": "string",
+              "title": "Cvr"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Company Details",
-            "headers": {
-              "ETag": {
-                "schema": {
-                  "type": "string"
-                }
-              },
-              "Cache-Control": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Company"
+                  "$ref": "#/components/schemas/CompanyResponse"
                 }
               }
             }
           },
-          "304": {
-            "description": "Not Modified"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "429": {
-            "$ref": "#/components/responses/RateLimitError"
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       }
     },
     "/v1/filings/{cvr}": {
       "get": {
-        "summary": "List Company Filings",
-        "operationId": "list_filings",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
+        "summary": "Filings",
+        "operationId": "filings_v1_filings__cvr__get",
         "parameters": [
           {
             "name": "cvr",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
-            },
-            "description": "CVR number"
+              "type": "string",
+              "title": "Cvr"
+            }
           },
           {
             "name": "limit",
@@ -216,68 +216,85 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "default": 10
-            },
-            "description": "Maximum number of results"
+              "default": 10,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Company Filings",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "filings": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Filing"
-                      }
-                    },
-                    "citations": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Citation"
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/FilingsResponse"
                 }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "429": {
-            "$ref": "#/components/responses/RateLimitError"
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       }
     },
     "/v1/accounts/latest/{cvr}": {
       "get": {
-        "summary": "Get Latest Accounts",
-        "operationId": "get_latest_accounts",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
+        "summary": "Latest Accounts",
+        "operationId": "latest_accounts_v1_accounts_latest__cvr__get",
         "parameters": [
           {
             "name": "cvr",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
-            },
-            "description": "CVR number"
+              "type": "string",
+              "title": "Cvr"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Latest Accounts",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
@@ -286,41 +303,53 @@
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "429": {
-            "$ref": "#/components/responses/RateLimitError"
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       }
     },
     "/v1/compare/{cvr}": {
       "get": {
-        "summary": "Compare Company Accounts",
-        "operationId": "compare_accounts",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
+        "summary": "Compare",
+        "operationId": "compare_v1_compare__cvr__get",
         "parameters": [
           {
             "name": "cvr",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
-            },
-            "description": "CVR number"
+              "type": "string",
+              "title": "Cvr"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Account Comparison",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
@@ -329,173 +358,810 @@
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/compare/{cvr}/export": {
+      "get": {
+        "summary": "Export Comparison",
+        "description": "Export comparison data as CSV or Excel.",
+        "operationId": "export_comparison_v1_compare__cvr__export_get",
+        "parameters": [
+          {
+            "name": "cvr",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cvr"
+            }
           },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "csv",
+              "title": "Format"
+            }
           },
-          "429": {
-            "$ref": "#/components/responses/RateLimitError"
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       }
     }
   },
   "components": {
-    "securitySchemes": {
-      "ApiKeyAuth": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "x-api-key"
-      }
-    },
     "schemas": {
-      "Company": {
-        "type": "object",
+      "AccountsDelta": {
         "properties": {
-          "cvr": {
-            "type": "string"
+          "field": {
+            "type": "string",
+            "title": "Field"
           },
-          "name": {
-            "type": "string"
+          "current_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Value"
           },
-          "address": {
-            "type": "string"
+          "previous_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Value"
           },
-          "status": {
-            "type": "string"
+          "absolute_change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Absolute Change"
+          },
+          "percentage_change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Percentage Change"
           }
-        }
-      },
-      "Filing": {
+        },
         "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string"
-          },
-          "date": {
-            "type": "string"
-          },
-          "url": {
-            "type": "string"
-          }
-        }
-      },
-      "Citation": {
-        "type": "object",
-        "properties": {
-          "source": {
-            "type": "string"
-          },
-          "url": {
-            "type": "string"
-          },
-          "path": {
-            "type": "string"
-          },
-          "note": {
-            "type": "string"
-          }
-        }
+        "required": [
+          "field"
+        ],
+        "title": "AccountsDelta"
       },
       "AccountsResponse": {
-        "type": "object",
         "properties": {
-          "accounts": {
-            "type": "object"
+          "current": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountsSnapshot"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "previous": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountsSnapshot"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "citations": {
-            "type": "array",
             "items": {
               "$ref": "#/components/schemas/Citation"
-            }
+            },
+            "type": "array",
+            "title": "Citations"
           }
-        }
+        },
+        "type": "object",
+        "title": "AccountsResponse"
+      },
+      "AccountsSnapshot": {
+        "properties": {
+          "period": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Period"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revenue": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revenue"
+          },
+          "ebit": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ebit"
+          },
+          "net_income": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Income"
+          },
+          "assets": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assets"
+          },
+          "equity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Equity"
+          },
+          "cash": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cash"
+          },
+          "current_assets": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Assets"
+          },
+          "current_liabilities": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Liabilities"
+          },
+          "source_anchors": {
+            "items": {
+              "$ref": "#/components/schemas/Citation"
+            },
+            "type": "array",
+            "title": "Source Anchors"
+          }
+        },
+        "type": "object",
+        "title": "AccountsSnapshot"
+      },
+      "Address": {
+        "properties": {
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type"
+          },
+          "street": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Street"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "zip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Zip"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          }
+        },
+        "type": "object",
+        "title": "Address"
+      },
+      "Citation": {
+        "properties": {
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "accessed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accessed At"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "ixbrl",
+                  "pdf",
+                  "api",
+                  "fixtures"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "url",
+          "label"
+        ],
+        "title": "Citation"
+      },
+      "Company": {
+        "properties": {
+          "cvr": {
+            "type": "string",
+            "title": "Cvr"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "industry": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Industry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "addresses": {
+            "items": {
+              "$ref": "#/components/schemas/Address"
+            },
+            "type": "array",
+            "title": "Addresses"
+          },
+          "officers": {
+            "items": {
+              "$ref": "#/components/schemas/Officer"
+            },
+            "type": "array",
+            "title": "Officers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cvr",
+          "name"
+        ],
+        "title": "Company"
+      },
+      "CompanyResponse": {
+        "properties": {
+          "company": {
+            "$ref": "#/components/schemas/Company"
+          },
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/Citation"
+            },
+            "type": "array",
+            "title": "Citations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "company"
+        ],
+        "title": "CompanyResponse"
       },
       "CompareResponse": {
-        "type": "object",
         "properties": {
           "current_period": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Period"
           },
           "previous_period": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Period"
           },
           "key_changes": {
-            "type": "array",
             "items": {
-              "type": "object"
-            }
+              "$ref": "#/components/schemas/AccountsDelta"
+            },
+            "type": "array",
+            "title": "Key Changes"
           },
           "narrative": {
-            "type": "string"
+            "type": "string",
+            "title": "Narrative"
           },
           "sources": {
-            "type": "array",
             "items": {
               "$ref": "#/components/schemas/Citation"
-            }
+            },
+            "type": "array",
+            "title": "Sources"
           }
-        }
-      }
-    },
-    "responses": {
-      "UnauthorizedError": {
-        "description": "Authentication required",
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "detail": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+        },
+        "type": "object",
+        "required": [
+          "narrative"
+        ],
+        "title": "CompareResponse"
       },
-      "NotFoundError": {
-        "description": "Resource not found",
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "detail": {
-                  "type": "string"
-                }
-              }
-            }
+      "Filing": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "date": {
+            "type": "string",
+            "title": "Date"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
           }
-        }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "date",
+          "url"
+        ],
+        "title": "Filing"
       },
-      "RateLimitError": {
-        "description": "Rate limit exceeded",
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "detail": {
-                  "type": "string"
-                }
-              }
-            }
+      "FilingsResponse": {
+        "properties": {
+          "filings": {
+            "items": {
+              "$ref": "#/components/schemas/Filing"
+            },
+            "type": "array",
+            "title": "Filings"
+          },
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/Citation"
+            },
+            "type": "array",
+            "title": "Citations"
           }
-        }
+        },
+        "type": "object",
+        "required": [
+          "filings"
+        ],
+        "title": "FilingsResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Industry": {
+        "properties": {
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "title": "Industry"
+      },
+      "Officer": {
+        "properties": {
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "title": "Officer"
+      },
+      "Period": {
+        "properties": {
+          "start_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          },
+          "end_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Date"
+          },
+          "year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Year"
+          }
+        },
+        "type": "object",
+        "title": "Period"
+      },
+      "SearchItem": {
+        "properties": {
+          "cvr": {
+            "type": "string",
+            "title": "Cvr"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cvr",
+          "name"
+        ],
+        "title": "SearchItem"
+      },
+      "SearchResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SearchItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Offset"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Offset"
+          },
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/Citation"
+            },
+            "type": "array",
+            "title": "Citations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset",
+          "next_offset"
+        ],
+        "title": "SearchResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
       }
     }
   }
