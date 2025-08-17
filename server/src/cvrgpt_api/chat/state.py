@@ -26,4 +26,6 @@ def set_last_table(thread_id: str, table_payload: dict | None):
 
 
 def get_last_table(thread_id: str):
-    return _STORE[thread_id]["last_table"]
+    if thread_id not in _STORE:
+        return None
+    return _STORE[thread_id].get("last_table")

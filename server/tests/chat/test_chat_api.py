@@ -1,9 +1,17 @@
+import os
+
+# Set test environment variables BEFORE importing the app
+os.environ.setdefault("API_KEY", "test-key")
+os.environ.setdefault("CVRGPT_ENDPOINT_API_KEY", "test-key")
+os.environ.setdefault("DATA_PROVIDER", "fixture")
+os.environ.setdefault("APP_ENV", "dev")
+
 from fastapi.testclient import TestClient
 from cvrgpt_api.api import app
 from cvrgpt_api.chat.state import _STORE
 
 client = TestClient(app)
-HEADERS = {"x-api-key": "dev-key"}  # Using dev key for tests
+HEADERS = {"X-API-Key": "test-key"}  # Using test key for tests (note capitalization)
 
 
 def test_requires_api_key():
@@ -38,7 +46,10 @@ def test_export_csv_no_table():
     """Test CSV export when no table exists"""
     r = client.get("/chat/export?thread_id=nonexistent", headers=HEADERS)
     assert r.status_code == 400
-    assert "No table to export" in r.json()["detail"]
+    response_data = r.json()
+    # Check for the error message in either the message field or detail field
+    error_text = response_data.get("message", "") + str(response_data.get("detail", ""))
+    assert "No table to export" in error_text
 
 
 def test_export_csv_with_table():
