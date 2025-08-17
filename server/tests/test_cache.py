@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import AsyncMock, patch, Mock
+from unittest.mock import patch, Mock
 from fastapi import Request
 from cvrgpt_api.cache import cache_get, cache_set, with_etag, _key, cache
 
@@ -7,7 +7,7 @@ from cvrgpt_api.cache import cache_get, cache_set, with_etag, _key, cache
 @pytest.mark.asyncio
 async def test_cache_get_returns_none_when_empty():
     """Test that cache_get returns None when key doesn't exist"""
-    with patch.object(cache, 'get', return_value=None) as mock_get:
+    with patch.object(cache, "get", return_value=None) as mock_get:
         result = await cache_get("test_key")
         assert result is None
         mock_get.assert_called_once_with("test_key")
@@ -17,7 +17,7 @@ async def test_cache_get_returns_none_when_empty():
 async def test_cache_get_returns_parsed_data():
     """Test that cache_get returns parsed JSON data"""
     test_data = {"name": "Test Company", "cvr": "12345678"}
-    with patch.object(cache, 'get', return_value=test_data) as mock_get:
+    with patch.object(cache, "get", return_value=test_data) as mock_get:
         result = await cache_get("test_key")
         assert result == test_data
         mock_get.assert_called_once_with("test_key")
@@ -27,7 +27,7 @@ async def test_cache_get_returns_parsed_data():
 async def test_cache_set_stores_data():
     """Test that cache_set stores data with TTL"""
     test_data = {"name": "Test Company", "cvr": "12345678"}
-    with patch.object(cache, 'set') as mock_set:
+    with patch.object(cache, "set") as mock_set:
         await cache_set("test_key", test_data, 3600)
         mock_set.assert_called_once_with("test_key", test_data, 3600)
 
@@ -48,7 +48,9 @@ def test_with_etag_returns_304_when_etag_matches():
     import hashlib
     import json
 
-    expected_etag = hashlib.md5(json.dumps(test_data, default=str).encode(), usedforsecurity=False).hexdigest()  # nosec B324
+    expected_etag = hashlib.md5(
+        json.dumps(test_data, default=str).encode(), usedforsecurity=False
+    ).hexdigest()  # nosec B324
 
     mock_request.headers = {"if-none-match": expected_etag}
 

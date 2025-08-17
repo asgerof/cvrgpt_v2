@@ -8,11 +8,13 @@ from fastapi import Request
 
 try:
     import redis  # type: ignore
+
     _r = redis
 except Exception:
     _r = None
 
 REDIS_URL = os.getenv("CVRGPT_REDIS_URL")
+
 
 class Cache:
     def __init__(self):
@@ -39,7 +41,9 @@ class Cache:
         else:
             self._mem[key] = (time.time() + ttl_seconds, s)
 
+
 cache = Cache()
+
 
 def cached(ttl: int, key_fn: Callable[..., str]):
     def deco(fn):
@@ -51,7 +55,9 @@ def cached(ttl: int, key_fn: Callable[..., str]):
             val = await fn(*args, **kwargs)
             cache.set(key, val, ttl)
             return val
+
         return wrap
+
     return deco
 
 
