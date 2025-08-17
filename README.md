@@ -56,6 +56,47 @@ make typecheck
 make test
 ```
 
+## Data Providers
+
+**ERST/Datafordeler is the default and primary source.**  
+The application is wired to use ERST in all non-dev environments. If ERST credentials are missing, the server will **fail closed** on startup to avoid silently serving stale/fixture data.
+
+### Environment
+
+```ini
+APP_ENV=dev|prod
+DATA_PROVIDER=erst        # default
+ERST_CLIENT_ID=...
+ERST_CLIENT_SECRET=...
+ERST_AUTH_URL=...
+ERST_TOKEN_AUDIENCE=...
+ERST_API_BASE_URL=...
+ERST_CERT_PATH=...        # optional
+ERST_KEY_PATH=...         # optional
+API_KEY=...
+```
+
+### Healthcheck
+
+Verify provider readiness:
+
+```bash
+curl -H "X-API-Key: $API_KEY" http://localhost:8000/health/provider
+# { "provider": "erst", "ok": true }
+```
+
+### Local development
+
+For local tinkering you can still use the fixture provider:
+
+```bash
+APP_ENV=dev DATA_PROVIDER=fixture uvicorn cvrgpt_api.api:app --reload
+```
+
+### Chat answers & provenance
+
+All chat answers are grounded in provider data. In production, **ERST is the always-on provider**; numbers are never hallucinated and are returned with their reporting period. If a tool is temporarily unavailable, the app will return a partial answer and clearly state which source was unavailable.
+
 ## Architecture
 
 ```mermaid
@@ -63,10 +104,12 @@ flowchart LR
   UI[Next.js UI<br/>Typed Client] -- REST --> API[FastAPI<br/>cvrgpt_api]
   API -- calls --> CORE[cvrgpt_core<br/>Domain Models<br/>Services<br/>Providers]
   API -- cache --> Redis[(Redis)]
-  CORE -- provider --> Fixture[Fixture Provider]
+  CORE -- provider --> ERST[ERST Provider<br/>Default]
+  CORE -- provider --> Fixture[Fixture Provider<br/>Dev Only]
 
   subgraph "Pure Domain"
     CORE
+    ERST
     Fixture
   end
 

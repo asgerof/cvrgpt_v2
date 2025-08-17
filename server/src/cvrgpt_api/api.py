@@ -25,6 +25,8 @@ from .providers.fixtures import FixtureProvider
 from .providers.cvr_api import CVRApiProvider
 from .providers.regnskab import RegnskabProvider
 from .providers.base import CompositeProvider
+from .providers.erst import ERSTProvider
+from .health.router import router as health_router
 from .services.compare import compare_accounts_snapshots
 from .mcp_server import mcp
 from . import models
@@ -70,13 +72,42 @@ def get_provider():
     global _provider_instance
     if _provider_instance is not None:
         return _provider_instance
-    if settings.provider == "fixtures":
+    
+    # Use new environment variables for provider selection
+    import os
+    provider_name = os.getenv("DATA_PROVIDER", "erst").lower()
+    app_env = os.getenv("APP_ENV", "dev").lower()
+    
+    if provider_name == "erst":
+        # Check for required ERST environment variables
+        missing = [k for k in [
+            "ERST_CLIENT_ID", "ERST_CLIENT_SECRET", "ERST_AUTH_URL",
+            "ERST_TOKEN_AUDIENCE", "ERST_API_BASE_URL"
+        ] if not os.getenv(k)]
+        
+        if missing and app_env != "dev":
+            raise RuntimeError(
+                f"ERST provider selected but required env vars are missing: {', '.join(missing)}"
+            )
+        
+        erst_provider = ERSTProvider(
+            client_id=os.getenv("ERST_CLIENT_ID", ""),
+            client_secret=os.getenv("ERST_CLIENT_SECRET", ""),
+            auth_url=os.getenv("ERST_AUTH_URL", ""),
+            token_audience=os.getenv("ERST_TOKEN_AUDIENCE", ""),
+            api_base=os.getenv("ERST_API_BASE_URL", ""),
+            cert_path=os.getenv("ERST_CERT_PATH"),
+            key_path=os.getenv("ERST_KEY_PATH"),
+        )
+        _provider_instance = erst_provider
+    elif provider_name == "fixture" or settings.provider == "fixtures":
         # For fixtures, use a composite with fixture provider for both core and filings
         fixture_provider = FixtureProvider()
         _provider_instance = CompositeProvider(
             core=fixture_provider, filings_provider=fixture_provider
         )
     elif settings.provider == "cvr_api":
+        # Legacy support for existing CVR API configuration
         if not settings.api_base_url:
             raise RuntimeError("CVR API requires CVRGPT_API_BASE_URL")
         core = CVRApiProvider(
@@ -85,8 +116,21 @@ def get_provider():
         filings = RegnskabProvider()
         _provider_instance = CompositeProvider(core=core, filings_provider=filings)
     else:
-        raise RuntimeError(f"Unknown provider: {settings.provider}")
+        raise RuntimeError(f"Unknown provider: {provider_name}. Use 'erst' or 'fixture'.")
     return _provider_instance
+
+
+def _check_provider():
+    """Ensure provider is usable when not in dev"""
+    import os
+    app_env = os.getenv("APP_ENV", "dev").lower()
+    
+    if app_env != "dev":
+        prov = get_provider()
+        can_ping = getattr(prov, "ping", lambda: False)()
+        if not can_ping:
+            provider_name = os.getenv("DATA_PROVIDER", "erst").lower()
+            raise RuntimeError(f"{provider_name.upper()} provider not reachable at startup. Check environment variables.")
 
 
 app = FastAPI(title="CVRGPT Server", version="0.1.0")
@@ -132,6 +176,7 @@ instrumentator.expose(app, include_in_schema=False, endpoint="/metrics")
 @app.on_event("startup")
 async def _startup():
     await init_rate_limiter()
+    _check_provider()
 
 
 # Request ID middleware is now handled by RequestIDMiddleware class above
@@ -387,3 +432,6 @@ app.include_router(api_v1)
 
 # Include the chat router
 app.include_router(chat_router)
+
+# Include the health router
+app.include_router(health_router)
