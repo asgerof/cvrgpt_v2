@@ -9,7 +9,7 @@ from .observability import RequestIDMiddleware
 from .redis_client import redis_client
 from .rate_limit import init_rate_limiter
 from fastapi_limiter.depends import RateLimiter
-from .cache import cache_get, cache_set, with_etag
+from .cache import cache_get, cache_set, with_etag, cached
 from .providers.fixtures import FixtureProvider
 from .providers.cvr_api import CVRApiProvider
 from .providers.regnskab import RegnskabProvider
@@ -124,6 +124,8 @@ async def readiness():
         raise HTTPException(status_code=503, detail="Redis unavailable")
 
 
+def _search_key(q: str, limit: int, offset: int): return f"search:{q}:{limit}:{offset}"
+
 @api_v1.get(
     "/search",
     response_model=models.SearchResponse,
@@ -134,29 +136,33 @@ async def search(
     limit: int = Query(10, ge=1, le=50),
     offset: int = Query(0, ge=0),
 ):
-    prov = get_provider()
-    try:
-        # Get data with pagination
-        data = await prov.search_companies(q, limit, offset)
-        
-        # Calculate pagination info
-        total = data.get("total", len(data.get("items", [])))
-        items = data.get("items", [])
-        next_offset = offset + limit if offset + limit < total else None
-        
-        # Build response
-        response_data = {
-            "items": items,
-            "total": total,
-            "limit": limit,
-            "offset": offset,
-            "next_offset": next_offset,
-            "citations": data.get("citations", [])
-        }
-        
-        return JSONResponse(response_data)
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+    @cached(ttl=900, key_fn=lambda *_args, **_kw: _search_key(q, limit, offset))
+    async def _do():
+        prov = get_provider()
+        try:
+            # Get data with pagination
+            data = await prov.search_companies(q, limit, offset)
+            
+            # Calculate pagination info
+            total = data.get("total", len(data.get("items", [])))
+            items = data.get("items", [])
+            next_offset = offset + limit if offset + limit < total else None
+            
+            # Build response
+            response_data = {
+                "items": items,
+                "total": total,
+                "limit": limit,
+                "offset": offset,
+                "next_offset": next_offset,
+                "citations": data.get("citations", [])
+            }
+            
+            return response_data
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=str(e))
+    
+    return JSONResponse(await _do())
 
 
 TTL_COMPANY = 6 * 60 * 60  # 6 hours
@@ -201,9 +207,12 @@ async def company(cvr: str, request: Request):
 
 @api_v1.get("/filings/{cvr}", response_model=models.FilingsResponse)
 async def filings(cvr: str, limit: int = 10):
-    prov = get_provider()
-    data = await prov.list_filings(cvr, limit)
-    return JSONResponse(data)
+    @cached(ttl=86400, key_fn=lambda *_args, **_kw: f"filings:{cvr}")
+    async def _do():
+        prov = get_provider()
+        return await prov.list_filings(cvr, limit)
+    
+    return JSONResponse(await _do())
 
 
 @api_v1.get(
@@ -212,9 +221,12 @@ async def filings(cvr: str, limit: int = 10):
     dependencies=[Depends(RateLimiter(times=30, seconds=60))],
 )
 async def latest_accounts(cvr: str):
-    prov = get_provider()
-    data = await prov.get_latest_accounts(cvr)
-    return JSONResponse(data)
+    @cached(ttl=43200, key_fn=lambda *_args, **_kw: f"accounts:latest:{cvr}")
+    async def _do():
+        prov = get_provider()
+        return await prov.get_latest_accounts(cvr)
+    
+    return JSONResponse(await _do())
 
 
 @api_v1.get("/compare/{cvr}", response_model=models.CompareResponse)
