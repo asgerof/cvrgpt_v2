@@ -31,7 +31,8 @@ jobs:
         run: |
           cd server
           ruff check .
-          mypy src/cvrgpt_server/security.py src/cvrgpt_server/rate_limit.py src/cvrgpt_server/cache.py src/cvrgpt_server/http.py src/cvrgpt_server/logging.py src/cvrgpt_server/observability.py --ignore-missing-imports
+          export PYTHONPATH=src
+          mypy src/cvrgpt_api/ --ignore-missing-imports
       - name: Run tests
         run: |
           cd server
