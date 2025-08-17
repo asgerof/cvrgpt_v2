@@ -150,17 +150,17 @@ app.add_exception_handler(Exception, internal_error_handler)
 api_v1 = APIRouter(prefix="/v1", dependencies=[Depends(require_api_key)])
 
 # Add request ID middleware
-app.add_middleware(RequestIDMiddleware)
+app.add_middleware(RequestIDMiddleware)  # type: ignore
 
 # Wire up access logging
-app.add_middleware(BaseHTTPMiddleware, dispatch=access_log_mw)
+app.add_middleware(BaseHTTPMiddleware, dispatch=access_log_mw)  # type: ignore
 
 # Wire up old custom metrics (will be replaced by Prometheus)
 # app.include_router(metrics.router)
 
 # CORS so the Next.js dev server can talk to the API
 app.add_middleware(
-    CORSMiddleware,
+    CORSMiddleware,  # type: ignore
     allow_origins=settings.cors_origins(),
     allow_methods=["*"],
     allow_headers=["*"],

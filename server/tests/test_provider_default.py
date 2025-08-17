@@ -1,7 +1,7 @@
 import os
 import pytest
 from unittest.mock import patch
-from cvrgpt_api.api import get_provider, _provider_instance
+from cvrgpt_api.api import get_provider
 from cvrgpt_api.providers.erst import ERSTProvider
 from cvrgpt_api.providers.fixtures import FixtureProvider
 

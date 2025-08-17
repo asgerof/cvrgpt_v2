@@ -2,7 +2,7 @@ from .base import Provider
 from ..models import Citation
 from ..errors import ErrorPayload, ErrorCode
 import httpx
-from cachetools import TTLCache
+from cachetools import TTLCache  # type: ignore
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlencode
 from datetime import datetime
@@ -217,7 +217,7 @@ class CVRApiProvider(Provider):
                         "country": addr.get("landekode"),
                     }
                 )
-            company = {
+            company: dict = {
                 "cvr": str(v.get("cvrNummer") or cvr),
                 "name": name or "",
                 "status": status,

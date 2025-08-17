@@ -1,5 +1,5 @@
 import os
-from typing import Protocol, Any, Dict, List
+from typing import Protocol, Any, Dict
 
 class Provider(Protocol):
     def ping(self) -> bool: ...
