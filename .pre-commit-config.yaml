@@ -10,7 +10,7 @@ repos:
   hooks:
     - id: mypy
       files: ^server/src/
-      additional_dependencies: [pydantic, fastapi, httpx]
+      additional_dependencies: [pydantic, fastapi, httpx, types-cachetools]
 - repo: https://github.com/PyCQA/bandit
   rev: 1.8.6
   hooks:
@@ -21,3 +21,11 @@ repos:
   hooks:
     - id: end-of-file-fixer
     - id: trailing-whitespace
+- repo: local
+  hooks:
+    - id: pytest-coverage
+      name: pytest with coverage
+      entry: bash -c "cd server && export PYTHONPATH=src && python -m pytest --cov=cvrgpt_api --cov-fail-under=9"
+      language: system
+      pass_filenames: false
+      always_run: true
