@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request, Depends, APIRouter
+from fastapi import FastAPI, HTTPException, Request, Depends, APIRouter, Query
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -129,14 +129,34 @@ async def readiness():
     response_model=models.SearchResponse,
     dependencies=[Depends(RateLimiter(times=30, seconds=60))],
 )
-async def search(q: str, limit: int = 10):
+async def search(
+    q: str = Query(min_length=2, max_length=100),
+    limit: int = Query(10, ge=1, le=50),
+    offset: int = Query(0, ge=0),
+):
     prov = get_provider()
     try:
-        data = await prov.search_companies(q, limit)
+        # Get data with pagination
+        data = await prov.search_companies(q, limit, offset)
+        
+        # Calculate pagination info
+        total = data.get("total", len(data.get("items", [])))
+        items = data.get("items", [])
+        next_offset = offset + limit if offset + limit < total else None
+        
+        # Build response
+        response_data = {
+            "items": items,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "next_offset": next_offset,
+            "citations": data.get("citations", [])
+        }
+        
+        return JSONResponse(response_data)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
-    data.pop("x_cache", None)  # Remove cache info for clean response
-    return JSONResponse(data)
 
 
 TTL_COMPANY = 6 * 60 * 60  # 6 hours

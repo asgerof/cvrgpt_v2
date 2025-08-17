@@ -6,7 +6,7 @@ FIX = pathlib.Path(__file__).parents[1] / "fixtures"
 
 
 class FixtureProvider(Provider):
-    async def search_companies(self, q: str, limit: int = 10) -> dict:
+    async def search_companies(self, q: str, limit: int = 10, offset: int = 0) -> dict:
         items = []
         for p in (FIX / "companies").glob("*.json"):
             data = json.loads(p.read_text(encoding="utf-8"))
@@ -15,7 +15,15 @@ class FixtureProvider(Provider):
                 items.append(
                     {"cvr": data["cvr"], "name": data["name"], "status": data.get("status", "")}
                 )
-        return {"items": items[:limit], "citations": [{"source": "fixtures"}]}
+        
+        total = len(items)
+        paginated_items = items[offset:offset + limit]
+        
+        return {
+            "items": paginated_items,
+            "total": total,
+            "citations": [{"source": "fixtures"}]
+        }
 
     async def get_company(self, cvr: str) -> dict:
         p = FIX / "companies" / f"{cvr}.json"

@@ -49,7 +49,7 @@ class CVRApiProvider(Provider):
         self._rate_limit_cache[key] = current_count + 1
         return True
 
-    async def search_companies(self, q: str, limit: int = 10) -> dict:
+    async def search_companies(self, q: str, limit: int = 10, offset: int = 0) -> dict:
         key = ("search", q, limit)
         if key in self._cache:
             data = self._cache[key]

@@ -4,7 +4,7 @@ These mirror the REST/MCP contracts to keep schema stable and self-documenting.
 """
 
 from typing import List, Optional, Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, conint
 
 
 class Citation(BaseModel):
@@ -25,6 +25,10 @@ class SearchItem(BaseModel):
 
 class SearchResponse(BaseModel):
     items: List[SearchItem]
+    total: int
+    limit: conint(ge=1, le=50)  # type: ignore
+    offset: conint(ge=0)        # type: ignore
+    next_offset: Optional[int]
     citations: List[Citation] = Field(default_factory=list)
 
 

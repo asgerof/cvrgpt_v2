@@ -15,7 +15,7 @@ class RegnskabProvider(Provider):
     def __init__(self):
         self._client = httpx.AsyncClient(timeout=httpx.Timeout(10.0))
 
-    async def search_companies(self, q: str, limit: int = 10) -> dict:
+    async def search_companies(self, q: str, limit: int = 10, offset: int = 0) -> dict:
         # Not responsible for search; return empty
         return {"items": [], "citations": []}
 

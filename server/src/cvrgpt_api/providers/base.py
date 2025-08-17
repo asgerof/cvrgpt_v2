@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 class Provider(ABC):
     @abstractmethod
-    async def search_companies(self, q: str, limit: int = 10) -> dict: ...
+    async def search_companies(self, q: str, limit: int = 10, offset: int = 0) -> dict: ...
     @abstractmethod
     async def get_company(self, cvr: str) -> dict: ...
     @abstractmethod
@@ -17,8 +17,8 @@ class CompositeProvider(Provider):
         self.core = core
         self.filings_provider = filings_provider or core
 
-    async def search_companies(self, q: str, limit: int = 10) -> dict:
-        return await self.core.search_companies(q, limit)
+    async def search_companies(self, q: str, limit: int = 10, offset: int = 0) -> dict:
+        return await self.core.search_companies(q, limit, offset)
 
     async def get_company(self, cvr: str) -> dict:
         return await self.core.get_company(cvr)
