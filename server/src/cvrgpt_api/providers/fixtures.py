@@ -16,15 +16,11 @@ class FixtureProvider(Provider):
                 items.append(
                     {"cvr": data["cvr"], "name": data["name"], "status": data.get("status", "")}
                 )
-        
+
         total = len(items)
-        paginated_items = items[offset:offset + limit]
-        
-        return {
-            "items": paginated_items,
-            "total": total,
-            "citations": [{"source": "fixtures"}]
-        }
+        paginated_items = items[offset : offset + limit]
+
+        return {"items": paginated_items, "total": total, "citations": [{"source": "fixtures"}]}
 
     async def get_company(self, cvr: str) -> dict:
         p = FIX / "companies" / f"{cvr}.json"
@@ -38,15 +34,23 @@ class FixtureProvider(Provider):
         items = []
         if p.exists():
             items = json.loads(p.read_text(encoding="utf-8")).get("filings", [])
-        return {"filings": items[:limit], "citations": [{"source": "fixtures", "path": str(p)}]}
+        return {
+            "filings": items[:limit],
+            "citations": [{"url": f"file://{p}", "label": "Fixture data", "type": "fixtures"}],
+        }
 
     async def get_latest_accounts(self, cvr: str) -> dict:
         p = FIX / "filings" / f"{cvr}.json"
         if not p.exists():
-            return {"accounts": None, "citations": [{"source": "fixtures"}]}
+            return {
+                "accounts": None,
+                "citations": [
+                    {"url": f"file://{p}", "label": "Fixture data (not found)", "type": "fixtures"}
+                ],
+            }
         data = json.loads(p.read_text(encoding="utf-8"))
         acc = data.get("latest_accounts")
-        
+
         # Convert financial values to Decimal
         if acc:
             for period_key in ["current", "previous"]:
@@ -62,5 +66,8 @@ class FixtureProvider(Provider):
                         for key, value in period_data["bs"].items():
                             if isinstance(value, (int, float)):
                                 period_data["bs"][key] = Decimal(str(value))
-        
-        return {"accounts": acc, "citations": [{"source": "fixtures", "path": str(p)}]}
+
+        return {
+            "accounts": acc,
+            "citations": [{"url": f"file://{p}", "label": "Fixture data", "type": "fixtures"}],
+        }

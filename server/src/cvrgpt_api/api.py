@@ -59,6 +59,7 @@ def get_rate_limiter(times: int, seconds: int):
 
     return rate_limit_check
 
+
 log = setup_logging()
 
 _provider_instance = None
@@ -277,7 +278,7 @@ async def latest_accounts(cvr: str):
         prov = get_provider()
         return await prov.get_latest_accounts(cvr)
 
-    return JSONResponse(await _do())
+    return await _do()
 
 
 @api_v1.get("/compare/{cvr}", response_model=models.CompareResponse)
