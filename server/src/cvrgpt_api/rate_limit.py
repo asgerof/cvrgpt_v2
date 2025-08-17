@@ -1,8 +1,10 @@
+from typing import Any
+
 try:
     from fastapi_limiter import FastAPILimiter
     RATE_LIMITING_AVAILABLE = True
 except ImportError:
-    FastAPILimiter = None
+    FastAPILimiter: Any = None  # type: ignore
     RATE_LIMITING_AVAILABLE = False
 
 from .redis_client import redis_client

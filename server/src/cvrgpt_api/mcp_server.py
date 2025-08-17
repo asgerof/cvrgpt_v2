@@ -1,9 +1,11 @@
+from typing import Any
+
 try:
     from mcp.server.fastmcp import FastMCP
     MCP_AVAILABLE = True
 except ImportError:
     MCP_AVAILABLE = False
-    FastMCP = None
+    FastMCP: Any = None  # type: ignore
 
 from .providers.fixtures import FixtureProvider
 from .providers.cvr_api import CVRApiProvider

@@ -38,12 +38,14 @@ from .errors import (
     validation_error_handler,
     internal_error_handler,
 )
+from typing import Any as _Any
+
 try:
     from prometheus_fastapi_instrumentator import Instrumentator
     PROMETHEUS_AVAILABLE = True
 except ImportError:
     PROMETHEUS_AVAILABLE = False
-    Instrumentator = None
+    Instrumentator: _Any = None  # type: ignore
 import csv
 import io
 
@@ -169,13 +171,13 @@ app.add_middleware(
 # Router will be included at the end
 
 # Mount MCP SSE at /mcp (conditional)
-if hasattr(mcp, 'sse_app') and callable(getattr(mcp, 'sse_app', None)):
+if mcp is not None and hasattr(mcp, 'sse_app') and callable(getattr(mcp, 'sse_app', None)):
     app.mount(settings.mcp_mount_path, mcp.sse_app())
 
 
 # Initialize Prometheus metrics immediately
 # Instrumentator for metrics (conditional)
-if PROMETHEUS_AVAILABLE and Instrumentator:
+if PROMETHEUS_AVAILABLE and Instrumentator is not None:
     instrumentator = Instrumentator()
     instrumentator.instrument(app)
     instrumentator.expose(app, include_in_schema=False, endpoint="/metrics")
