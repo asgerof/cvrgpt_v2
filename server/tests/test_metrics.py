@@ -38,10 +38,6 @@ def test_metrics_contains_prometheus_data():
 def test_metrics_endpoint_not_in_openapi():
     """Test that /metrics endpoint is not included in OpenAPI schema."""
     client = TestClient(app)
-    r = client.get("/openapi.json")
-    
-    openapi_data = r.json()
-    paths = openapi_data.get("paths", {})
     
     # /metrics should not be in the OpenAPI schema (Prometheus sets include_in_schema=False)
     # Note: This might still appear in some FastAPI versions, so we'll check the endpoint works instead

@@ -1,4 +1,6 @@
-import json, os, time
+import json
+import os
+import time
 from typing import Any, Callable
 import hashlib
 from starlette.responses import Response
@@ -21,10 +23,12 @@ class Cache:
             v = self._r.get(key)
             return json.loads(v) if v else None
         v = self._mem.get(key)
-        if not v: return None
+        if not v:
+            return None
         expires_at, data = v
         if time.time() > expires_at:
-            self._mem.pop(key, None); return None
+            self._mem.pop(key, None)
+            return None
         return json.loads(data)
 
     def set(self, key: str, value: Any, ttl_seconds: int):
@@ -41,7 +45,8 @@ def cached(ttl: int, key_fn: Callable[..., str]):
         async def wrap(*args, **kwargs):
             key = key_fn(*args, **kwargs)
             hit = cache.get(key)
-            if hit is not None: return hit
+            if hit is not None:
+                return hit
             val = await fn(*args, **kwargs)
             cache.set(key, val, ttl)
             return val

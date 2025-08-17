@@ -2,7 +2,6 @@
 
 from fastapi.testclient import TestClient
 from cvrgpt_api.api import app
-import json
 
 
 def test_request_id_header_present():

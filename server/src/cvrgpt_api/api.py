@@ -17,8 +17,7 @@ from .providers.base import CompositeProvider
 from .services.compare import compare_accounts_snapshots
 from .mcp_server import mcp
 from . import models
-from .errors import ErrorPayload, ErrorCode, not_found_handler, upstream_handler, validation_error_handler, internal_error_handler
-from cvrgpt_api import metrics
+from .errors import ErrorPayload, ErrorCode, not_found_handler, validation_error_handler, internal_error_handler
 from prometheus_fastapi_instrumentator import Instrumentator
 import csv
 import io
