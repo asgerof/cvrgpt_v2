@@ -17,7 +17,7 @@ from .providers.base import CompositeProvider
 from .services.compare import compare_accounts_snapshots
 from .mcp_server import mcp
 from . import models
-from .errors import ErrorPayload, ErrorCode
+from .errors import ErrorPayload, ErrorCode, not_found_handler, upstream_handler, validation_error_handler, internal_error_handler
 from cvrgpt_api import metrics
 import csv
 import io
@@ -51,6 +51,12 @@ def get_provider():
 
 
 app = FastAPI(title="CVRGPT Server", version="0.1.0")
+
+# Register error handlers
+app.add_exception_handler(FileNotFoundError, not_found_handler)
+app.add_exception_handler(KeyError, not_found_handler)
+app.add_exception_handler(ValueError, validation_error_handler)
+app.add_exception_handler(Exception, internal_error_handler)
 
 # Create versioned router with API key protection
 api_v1 = APIRouter(prefix="/v1", dependencies=[Depends(require_api_key)])
