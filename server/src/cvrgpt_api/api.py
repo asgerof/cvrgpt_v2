@@ -19,6 +19,7 @@ from .mcp_server import mcp
 from . import models
 from .errors import ErrorPayload, ErrorCode, not_found_handler, upstream_handler, validation_error_handler, internal_error_handler
 from cvrgpt_api import metrics
+from prometheus_fastapi_instrumentator import Instrumentator
 import csv
 import io
 
@@ -67,8 +68,8 @@ app.add_middleware(RequestIDMiddleware)
 # Wire up access logging
 app.add_middleware(BaseHTTPMiddleware, dispatch=access_log_mw)
 
-# Wire up metrics
-app.include_router(metrics.router)
+# Wire up old custom metrics (will be replaced by Prometheus)
+# app.include_router(metrics.router)
 
 # CORS so the Next.js dev server can talk to the API
 app.add_middleware(
@@ -82,6 +83,12 @@ app.add_middleware(
 
 # Mount MCP SSE at /mcp
 app.mount(settings.mcp_mount_path, mcp.sse_app())
+
+
+# Initialize Prometheus metrics immediately
+instrumentator = Instrumentator()
+instrumentator.instrument(app)
+instrumentator.expose(app, include_in_schema=False, endpoint="/metrics")
 
 
 @app.on_event("startup")

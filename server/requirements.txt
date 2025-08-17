@@ -18,3 +18,4 @@ tenacity>=8.2
 fastapi-limiter>=0.1
 pydantic-settings>=2.0
 types-redis>=4.6
+prometheus-fastapi-instrumentator>=7.0
