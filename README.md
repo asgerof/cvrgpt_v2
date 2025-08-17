@@ -94,7 +94,7 @@ All API endpoints are versioned under `/v1/` and require an `x-api-key` header:
 ### Authentication
 Set the `API_KEY` environment variable and include it in requests:
 ```bash
-curl -H "x-api-key: your-api-key" http://localhost:8000/v1/search?q=company
+curl -H "X-API-Key: $API_KEY" "http://localhost:8000/v1/search?q=lego&limit=10&offset=0"
 ```
 
 ## What Works Today

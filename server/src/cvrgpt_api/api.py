@@ -72,11 +72,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Router will be included at the end
+
 # Mount MCP SSE at /mcp
 app.mount(settings.mcp_mount_path, mcp.sse_app())
-
-# Include the versioned API router
-app.include_router(api_v1)
 
 
 @app.on_event("startup")
@@ -296,3 +295,7 @@ async def export_comparison(cvr: str, format: str = "csv"):
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename=company_{cvr}_comparison.csv"},
     )
+
+
+# Include the versioned API router at the end
+app.include_router(api_v1)

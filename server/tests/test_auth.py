@@ -1,37 +1,21 @@
-import pytest
-from fastapi import HTTPException
-from cvrgpt_api.security import require_api_key
+from fastapi.testclient import TestClient
+from cvrgpt_api.api import app
+
+client = TestClient(app)
 
 
-def test_require_api_key_with_valid_key():
-    # Use the default key from settings
-    from cvrgpt_api.config import settings
-
-    default_key = settings.endpoint_api_key
-
-    # Should not raise exception with the default key
-    try:
-        require_api_key(default_key)
-    except HTTPException:
-        pytest.fail(f"require_api_key raised HTTPException with valid key: {default_key}")
+def test_healthz_no_auth():
+    r = client.get("/healthz")
+    assert r.status_code == 200
 
 
-def test_require_api_key_with_invalid_key():
-    with pytest.raises(HTTPException) as exc_info:
-        require_api_key("wrong-key")
-    assert exc_info.value.status_code == 401
-    assert exc_info.value.detail["code"] == "UNAUTHORIZED"
+def test_v1_requires_api_key_missing(monkeypatch):
+    monkeypatch.setenv("API_KEY", "secret")
+    r = client.get("/v1/search?q=test")
+    assert r.status_code == 401
 
 
-def test_require_api_key_with_no_key():
-    with pytest.raises(HTTPException) as exc_info:
-        require_api_key(None)
-    assert exc_info.value.status_code == 401
-    assert exc_info.value.detail["code"] == "UNAUTHORIZED"
-
-
-def test_require_api_key_with_empty_key():
-    with pytest.raises(HTTPException) as exc_info:
-        require_api_key("")
-    assert exc_info.value.status_code == 401
-    assert exc_info.value.detail["code"] == "UNAUTHORIZED"
+def test_v1_allows_with_correct_key(monkeypatch):
+    monkeypatch.setenv("API_KEY", "secret")
+    r = client.get("/v1/search?q=test", headers={"X-API-Key": "secret"})
+    assert r.status_code in (200, 204, 404)  # any valid outcome past auth

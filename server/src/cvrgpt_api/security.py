@@ -1,15 +1,14 @@
-import secrets
-from fastapi import HTTPException, Security
-from fastapi.security import APIKeyHeader
-from starlette.status import HTTP_401_UNAUTHORIZED
-from .config import settings
+import os
+from fastapi import Header, HTTPException, status
 
-api_key_header = APIKeyHeader(name="x-api-key", auto_error=False)
+API_KEY_ENV = "API_KEY"
 
 
-def require_api_key(key: str = Security(api_key_header)):
-    if not key or not secrets.compare_digest(key, settings.endpoint_api_key):
-        raise HTTPException(
-            status_code=HTTP_401_UNAUTHORIZED,
-            detail={"code": "UNAUTHORIZED", "message": "Invalid or missing API key."},
-        )
+def require_api_key(x_api_key: str | None = Header(default=None, alias="X-API-Key")):
+    expected = os.getenv(API_KEY_ENV)
+    # if expected is set, enforce; if not set (local dev), allow all
+    if expected:
+        if not x_api_key:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing API key")
+        if x_api_key != expected:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key")
