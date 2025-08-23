@@ -33,6 +33,7 @@ from . import models
 from .chat.router import router as chat_router
 from .routes.events import router as events_router
 from .routes.tools import router as tools_router
+from .routes.chat import router as v1_chat_router
 from .errors import (
     ErrorPayload,
     ErrorCode,
@@ -453,3 +454,6 @@ app.include_router(events_router)
 
 # Include the tools router
 app.include_router(tools_router)
+
+# Include the v1 chat router
+app.include_router(v1_chat_router)
