@@ -254,6 +254,11 @@ ALLOWED_ORIGIN=http://localhost:3000
 REDIS_HOST=localhost
 REDIS_PORT=6379
 
+# ERST Events Integration (optional)
+ERST_EVENTS_REAL=0
+ERST_API_BASE=
+ERST_API_KEY=
+
 # Frontend (server-side only - not exposed to browser)
 CVRGPT_API_URL=http://localhost:8000
 CVRGPT_API_KEY=your_secret_key
