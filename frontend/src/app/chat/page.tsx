@@ -200,6 +200,19 @@ export default function ChatPage() {
             </p>
           </div>
 
+          {/* Capabilities Banner */}
+          <div className="border-b border-gray-100 bg-blue-50 p-3">
+            <div className="text-sm text-blue-800 mb-2 font-medium">💡 Understood queries:</div>
+            <div className="flex flex-wrap gap-2 text-xs">
+              <span className="inline-flex items-center px-2 py-1 rounded bg-blue-100 text-blue-700 border border-blue-200">
+                "recent bankruptcies in the IT sector (last 3 months)"
+              </span>
+              <span className="inline-flex items-center px-2 py-1 rounded bg-blue-100 text-blue-700 border border-blue-200">
+                "What was the annual result of Demo IT ApS in 2022?"
+              </span>
+            </div>
+          </div>
+
           <div className="flex-1 p-4 space-y-4 overflow-y-auto">
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-3">

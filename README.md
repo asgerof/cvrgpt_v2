@@ -132,54 +132,60 @@ All API endpoints are versioned under `/v1/` and require an `x-api-key` header:
 | `/v1/accounts/latest/{cvr}` | GET | Get latest accounts | `AccountsResponse` |
 | `/v1/compare/{cvr}` | GET | Compare accounts over time | `CompareResponse` |
 | `/v1/compare/{cvr}/export` | GET | Export comparison as CSV | CSV file |
+| `/v1/events` | GET | List events with filtering | `EventsResponse` |
+| `/v1/tools/run` | POST | Execute tools (agent surface) | `ToolResponse` |
+| `/v1/chat` | POST | Chat with structured blocks | `ChatResponse` |
 | `/healthz` | GET | Health check | `{"status": "ok"}` |
 
-### Chat Interface
+### Chat & Events Features
 
-The chat interface provides a conversational way to explore company data with structured responses:
+The new endpoints provide:
 
-| Endpoint | Method | Description | Response |
-|----------|---------|-------------|----------|
-| `/chat` | POST | Chat with structured blocks | `ChatResponse` |
-| `/chat/export?thread_id={id}` | GET | Export last table as CSV | CSV file |
+- **Events API**: Filter bankruptcy events by type, NACE codes, and date ranges
+- **Tools System**: Extensible tool execution framework for agent capabilities  
+- **Chat Interface**: Natural language processing for company data exploration
 
-**Environment variables (frontend):**
-- `CVRGPT_API_URL=http://localhost:8000` (backend API URL - server-side only)
-- `CVRGPT_API_KEY=dev-key` (match your backend dev key - server-side only)
+**Environment variables (frontend - server-side only):**
+- `CVRGPT_API_URL=http://localhost:8000` (backend API URL)
+- `CVRGPT_API_KEY=dev-key` (match your backend dev key)
 
 **Environment variables (backend):**
 - `LLM_ENABLED=false` (MVP uses deterministic parsing)
+- `ERST_EVENTS_REAL=0` (set to 1 to enable real ERST API calls)
+- `ACCOUNTS_REAL=0` (set to 1 to enable real iXBRL/PDF extraction)
 - Optionally later:
   - `LLM_PROVIDER=openai`
   - `LLM_MODEL=gpt-4o-mini`
   - `OPENAI_API_KEY=...`
 
-**Usage example:**
+**Happy-path smoke commands:**
 ```bash
-POST /chat
-{
-  "messages": [{ "role": "user", "content": "Revenue for Maersk 2023" }]
-}
+# Events API
+curl -s "http://localhost:8000/v1/events?event_type=bankruptcy&nace=62&last_days=90&limit=5"
 
-Response:
-{
-  "thread_id": "...",
-  "blocks": [
-    {
-      "type": "table",
-      "caption": "Financials for 12345678",
-      "columns": ["Year", "Revenue", "EBIT", "EBITDA", "Net income", "Equity", "Employees"],
-      "rows": [["2023", "1000000", "150000", "150000", "100000", "500000", "—"]],
-      "footnote": "All figures as reported in CVR. Year = reporting year."
-    }
-  ]
-}
+# Tool call
+curl -s -X POST "http://localhost:8000/v1/tools/run" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"events_search","args":{"event_type":"bankruptcy","nace_prefixes":["62"],"date_from":"2025-05-23T00:00:00","date_to":"2025-08-23T00:00:00","limit":5}}'
+
+# Chat (bankruptcies)
+curl -s -X POST "http://localhost:8000/v1/chat" \
+  -H "Content-Type: application/json" \
+  -d '{"thread_id":"demo","messages":[{"role":"user","content":"recent bankruptcies in the IT sector (last 3 months)"}]}'
+
+# Chat (annual result)
+curl -s -X POST "http://localhost:8000/v1/chat" \
+  -H "Content-Type: application/json" \
+  -d '{"thread_id":"demo","messages":[{"role":"user","content":"What was the annual result of Demo IT ApS in 2022?"}]}'
 ```
 
-**Export example:**
+**Testing with real data sources:**
 ```bash
-GET /chat/export?thread_id=...
--> text/csv attachment of the last table in the thread
+# Enable real ERST events (requires ERST_API_BASE and ERST_API_KEY)
+ERST_EVENTS_REAL=1 uvicorn cvrgpt_api.api:app --reload
+
+# Enable real accounts extraction (requires implementation)
+ACCOUNTS_REAL=1 uvicorn cvrgpt_api.api:app --reload
 ```
 
 **Frontend:** Chat interface is available at `/chat` with:
@@ -342,6 +348,18 @@ docker build -t cvrgpt-ui frontend/
 - **API Docs**: Visit `/docs` when server is running
 - **Issues**: Create GitHub issue with reproduction steps
 - **Architecture**: See `server/src/cvrgpt_core/` for domain logic
+
+## Next Iteration
+
+**LLM Tool-Planning**: When ready, turn on LLM tool-planning behind a flag and keep the deterministic fallbacks:
+
+```bash
+LLM_ENABLED=true
+LLM_PROVIDER=openai
+OPENAI_API_KEY=your_key
+```
+
+This will enable the system to use function-calling LLMs for intent recognition while maintaining the existing tool registry and block contract.
 
 ---
 
