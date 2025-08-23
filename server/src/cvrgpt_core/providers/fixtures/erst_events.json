@@ -5,7 +5,7 @@
     "event_type": "bankruptcy",
     "event_subtype": "declaration",
     "nace": "62.01",
-    "event_date": "2025-07-15T00:00:00",
+    "event_date": "2025-07-15T00:00:00+00:00",
     "source_id": "evt-1",
     "source_url": "https://example.test/evt-1"
   },
@@ -15,7 +15,7 @@
     "event_type": "bankruptcy",
     "event_subtype": "petition",
     "nace": "62.02",
-    "event_date": "2025-06-30T00:00:00",
+    "event_date": "2025-06-30T00:00:00+00:00",
     "source_id": "evt-2",
     "source_url": "https://example.test/evt-2"
   }

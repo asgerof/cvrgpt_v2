@@ -31,6 +31,7 @@ from .services.compare import compare_accounts_snapshots
 from .mcp_server import mcp
 from . import models
 from .chat.router import router as chat_router
+from .routes.events import router as events_router
 from .errors import (
     ErrorPayload,
     ErrorCode,
@@ -445,3 +446,6 @@ app.include_router(chat_router)
 
 # Include the health router
 app.include_router(health_router)
+
+# Include the events router
+app.include_router(events_router)
