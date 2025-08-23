@@ -177,7 +177,7 @@ function formatCurrency(value: number | null): string {
 
 async function downloadCSV(cvr: string) {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/v1/compare/${cvr}/export`)
+    const response = await fetch(`/api/cvr/compare/${cvr}/export`)
     if (!response.ok) throw new Error('Export failed')
 
     const blob = await response.blob()

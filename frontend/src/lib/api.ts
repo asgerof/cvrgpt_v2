@@ -1,10 +1,4 @@
-import axios from "axios";
 import type { paths, components } from "@/types/api";
-
-export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000",
-  headers: { "x-api-key": process.env.NEXT_PUBLIC_API_KEY || "dev-local-key" },
-});
 
 // Type aliases for better readability
 type SearchResponse = paths["/v1/search"]["get"]["responses"]["200"]["content"]["application/json"];

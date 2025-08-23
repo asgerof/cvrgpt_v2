@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { api } from "../lib/api";
 import type { paths } from "../types/api"; // from openapi-typescript
 
 type SearchResp = paths["/v1/search"]["get"]["responses"]["200"]["content"]["application/json"];
@@ -7,9 +6,10 @@ type SearchResp = paths["/v1/search"]["get"]["responses"]["200"]["content"]["app
 export function useSearch(q: string) {
   return useQuery({
     queryKey: ["search", q],
-    queryFn: async () => {
-      const r = await api.get<SearchResp>("/v1/search", { params: { q, limit: 10 } });
-      return r.data;
+    queryFn: async (): Promise<SearchResp> => {
+      const r = await fetch(`/api/cvr/search?q=${encodeURIComponent(q)}&limit=10`);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
     },
     enabled: q.length >= 2,
     retry: 2,

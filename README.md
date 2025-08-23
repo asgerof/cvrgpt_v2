@@ -144,8 +144,8 @@ The chat interface provides a conversational way to explore company data with st
 | `/chat/export?thread_id={id}` | GET | Export last table as CSV | CSV file |
 
 **Environment variables (frontend):**
-- `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000`
-- `NEXT_PUBLIC_API_KEY=dev-key` (match your backend dev key)
+- `CVRGPT_API_URL=http://localhost:8000` (backend API URL - server-side only)
+- `CVRGPT_API_KEY=dev-key` (match your backend dev key - server-side only)
 
 **Environment variables (backend):**
 - `LLM_ENABLED=false` (MVP uses deterministic parsing)
@@ -254,8 +254,9 @@ ALLOWED_ORIGIN=http://localhost:3000
 REDIS_HOST=localhost
 REDIS_PORT=6379
 
-# Frontend
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+# Frontend (server-side only - not exposed to browser)
+CVRGPT_API_URL=http://localhost:8000
+CVRGPT_API_KEY=your_secret_key
 ```
 
 ## Development Commands
