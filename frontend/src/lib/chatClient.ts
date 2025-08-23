@@ -4,7 +4,7 @@ const API = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY || "dev-key";
 
 export async function postChat(req: ChatRequest): Promise<ChatResponse> {
-  const r = await fetch(`${API}/chat`, {
+  const r = await fetch(`${API}/v1/chat`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

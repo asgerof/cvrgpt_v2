@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { ChatBlock, ChatMessage } from "@/types/chat";
 import { postChat, exportCsv } from "@/lib/chatClient";
+import { downloadCSV } from "../../lib/csv";
 
 function BlockRenderer({
   block,
@@ -15,7 +16,34 @@ function BlockRenderer({
   threadId: string;
   onChoiceSelect: (cvr: string) => void;
 }) {
-  if (block.type === "text") return <p className="my-2 text-gray-800">{block.text}</p>;
+  if (block.type === "text") {
+    let className = "my-2";
+    if (block.emphasis === "warning") {
+      className += " text-amber-600 bg-amber-50 border border-amber-200 rounded p-2";
+    } else if (block.subtle) {
+      className += " text-gray-500 text-sm";
+    } else {
+      className += " text-gray-800";
+    }
+    return <p className={className}>{block.text}</p>;
+  }
+
+  if (block.type === "chips") {
+    return (
+      <div className="my-3">
+        <div className="flex flex-wrap gap-2">
+          {block.items.map((chip, i) => (
+            <span
+              key={i}
+              className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800 border border-blue-200"
+            >
+              {chip.label}
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   if (block.type === "card") {
     const entries = Object.entries(block.kv).filter(([_, v]) => v && v.length);
@@ -61,10 +89,10 @@ function BlockRenderer({
         {block.footnote && <div className="text-xs text-gray-500 mt-2">{block.footnote}</div>}
         <div className="mt-3">
           <button
-            onClick={onExport}
+            onClick={() => downloadCSV(block.columns, block.rows, "events.csv")}
             className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 transition-colors"
           >
-            Export CSV
+            Download CSV
           </button>
         </div>
       </div>
@@ -215,12 +243,14 @@ export default function ChatPage() {
             <form onSubmit={handleSubmit} className="flex gap-2">
               <input
                 ref={inputRef}
+                data-testid="chat-input"
                 className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder='Try: "Revenue for Maersk 2023"'
+                placeholder='Try: "recent bankruptcies in the IT sector (last 3 months)" or "What was the annual result of Demo IT ApS in 2022?"'
                 disabled={loading}
               />
               <button
                 type="submit"
+                data-testid="chat-send"
                 className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 disabled={loading}
               >
