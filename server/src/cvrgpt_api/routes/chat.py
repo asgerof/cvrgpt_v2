@@ -4,6 +4,7 @@ from typing import List, Dict, Any
 import re
 from datetime import datetime, timedelta, UTC
 from ..tools.registry import TOOLS
+from cvrgpt_core.accounts.extract import get_annual_result
 
 router = APIRouter(prefix="/v1/chat", tags=["chat"])
 
@@ -46,17 +47,20 @@ def chat(req: ChatRequest):
         }
 
     # 2) Annual result for company X in YEAR?
-    pat_res = re.compile(r"(annual result|årets resultat).*?(?:for|for\s*selskab(et)?|company)\s+(.+?)\s+(?:in|i)\s+(\d{4})\??", re.I)
+    pat_res = re.compile(r"(annual result|årets resultat).*?(?:for|of|for\s*selskab(et)?|company)\s+(.+?)\s+(?:in|i)\s+(\d{4})\??", re.I)
     m = pat_res.search(user_msg)
     if m:
         company = m.group(3).strip().strip('"')
         year = int(m.group(4))
-        # placeholder response; real extraction on Day 5/6
+        hit = get_annual_result(company, year)
+        if not hit:
+            return {"thread_id": req.thread_id, "blocks":[{"type":"text","text":f"No annual result found for {company} in {year} (yet)."}]}
         return {
             "thread_id": req.thread_id,
             "blocks":[
-                {"type":"text","text":f"Looking up annual result for {company} ({year})…"},
-                {"type":"text","emphasis":"warning","text":"Numeric extraction will be added in the next step."}
+                {"type":"text","text":f"Annual result ({year}) for {company}:"},
+                {"type":"table","columns":["Metric","Value","Currency"],"rows":[[hit["label"], f'{hit["value"]:,}', hit["currency"]]]},
+                {"type":"text","subtle":True,"text":f"Source: {hit['source_id']} ({hit['source_url']})"}
             ]
         }
 
