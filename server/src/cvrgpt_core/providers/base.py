@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List
-from ..models import Company, Filing, Accounts
+from ..models import Company, Filing, Accounts, Event, EventFilter
 
 
 class Provider(ABC):
@@ -14,3 +14,10 @@ class Provider(ABC):
     def latest_accounts(self, cvr: str) -> Accounts: ...
     @abstractmethod
     def accounts_for_year(self, cvr: str, year: int) -> Accounts: ...
+
+
+class EventsProvider(ABC):
+    @abstractmethod
+    def list_events(self, filters: EventFilter) -> List[Event]:
+        """Return events across companies according to filters."""
+        raise NotImplementedError
