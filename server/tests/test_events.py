@@ -9,3 +9,7 @@ def test_list_events_last_90_days():
     body = r.json()
     assert "items" in body and isinstance(body["items"], list)
     assert body["count"] <= 10
+
+def test_events_bad_params():
+    r = client.get("/v1/events?last_days=90&from_date=2025-01-01")
+    assert r.status_code == 400
