@@ -259,6 +259,9 @@ ERST_EVENTS_REAL=0
 ERST_API_BASE=
 ERST_API_KEY=
 
+# Annual Result Extraction (optional)
+ACCOUNTS_REAL=0
+
 # Frontend (server-side only - not exposed to browser)
 CVRGPT_API_URL=http://localhost:8000
 CVRGPT_API_KEY=your_secret_key

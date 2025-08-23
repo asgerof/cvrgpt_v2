@@ -1,11 +1,14 @@
 from typing import Optional, Dict, Any
+from .extract_real import get_annual_result_real
 
 def get_annual_result(company_query: str, year: int) -> Optional[Dict[str, Any]]:
     """
-    TEMP: reads from a small fixture mapping { (normalized_name, year): result }.
-    Replace with real iXBRL/pdf extraction later.
+    Try real extraction first, fallback to fixture data.
     """
-    norm = company_query.lower().strip()
-    from .fixtures import annual_results  # small dict
-    key = (norm, year)
+    real = get_annual_result_real(company_query, year)
+    if real:
+        return real
+    # fallback to fixture
+    from .fixtures import annual_results
+    key = (company_query.lower().strip(), year)
     return annual_results.get(key)
