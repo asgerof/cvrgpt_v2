@@ -1,17 +1,17 @@
 import os
 
 # Set test environment variables BEFORE importing the app
-os.environ.setdefault("API_KEY", "test-key")
-os.environ.setdefault("CVRGPT_ENDPOINT_API_KEY", "test-key")
-os.environ.setdefault("DATA_PROVIDER", "fixture")
-os.environ.setdefault("APP_ENV", "dev")
+os.environ["API_KEY"] = "test-secret"
+os.environ["CVRGPT_ENDPOINT_API_KEY"] = "test-secret"
+os.environ["DATA_PROVIDER"] = "fixture"
+os.environ["APP_ENV"] = "dev"
 
 from fastapi.testclient import TestClient
 from cvrgpt_api.api import app
 from cvrgpt_api.chat.state import _STORE
 
 client = TestClient(app)
-HEADERS = {"X-API-Key": "test-key"}  # Using test key for tests (note capitalization)
+HEADERS = {"X-API-Key": "test-secret"}  # Using test key for tests (note capitalization)
 
 
 def test_requires_api_key():
