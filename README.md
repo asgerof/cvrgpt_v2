@@ -58,7 +58,7 @@ make test
 
 ## Data Providers
 
-**ERST/Datafordeler is the default and primary source.**  
+**ERST/Datafordeler is the default and primary source.**
 The application is wired to use ERST in all non-dev environments. If ERST credentials are missing, the server will **fail closed** on startup to avoid silently serving stale/fixture data.
 
 ### Environment
@@ -142,7 +142,7 @@ All API endpoints are versioned under `/v1/` and require an `x-api-key` header:
 The new endpoints provide:
 
 - **Events API**: Filter bankruptcy events by type, NACE codes, and date ranges
-- **Tools System**: Extensible tool execution framework for agent capabilities  
+- **Tools System**: Extensible tool execution framework for agent capabilities
 - **Chat Interface**: Natural language processing for company data exploration
 
 **Environment variables (frontend - server-side only):**

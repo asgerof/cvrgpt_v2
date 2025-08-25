@@ -45,6 +45,7 @@ from typing import Any as _Any
 
 try:
     from prometheus_fastapi_instrumentator import Instrumentator
+
     PROMETHEUS_AVAILABLE = True
 except ImportError:
     PROMETHEUS_AVAILABLE = False
@@ -82,24 +83,35 @@ def get_provider():
     global _provider_instance
     if _provider_instance is not None:
         return _provider_instance
-    
+
     # Use new environment variables for provider selection
     import os
+
     provider_name = os.getenv("DATA_PROVIDER", "erst").lower()
     app_env = os.getenv("APP_ENV", "dev").lower()
-    
+
     if provider_name == "erst":
-        # Check for required ERST environment variables
-        missing = [k for k in [
-            "ERST_CLIENT_ID", "ERST_CLIENT_SECRET", "ERST_AUTH_URL",
-            "ERST_TOKEN_AUDIENCE", "ERST_API_BASE_URL"
-        ] if not os.getenv(k)]
-        
-        if missing and app_env != "dev":
+        # Allow either OAuth2 mode OR Basic Auth mode
+        oauth_required = [
+            "ERST_CLIENT_ID",
+            "ERST_CLIENT_SECRET",
+            "ERST_AUTH_URL",
+            "ERST_TOKEN_AUDIENCE",
+            "ERST_API_BASE_URL",
+        ]
+        missing_oauth = [k for k in oauth_required if not os.getenv(k)]
+        has_basic = bool(
+            os.getenv("ERST_API_BASE_URL")
+            and os.getenv("ERST_API_USER")
+            and os.getenv("ERST_API_PASSWORD")
+        )
+
+        if (missing_oauth and not has_basic) and app_env != "dev":
             raise RuntimeError(
-                f"ERST provider selected but required env vars are missing: {', '.join(missing)}"
+                "ERST provider selected but required env vars are missing: either provide OAuth2 variables "
+                f"({', '.join(oauth_required)}) or Basic Auth variables (ERST_API_BASE_URL, ERST_API_USER, ERST_API_PASSWORD)."
             )
-        
+
         erst_provider = ERSTProvider(
             client_id=os.getenv("ERST_CLIENT_ID", ""),
             client_secret=os.getenv("ERST_CLIENT_SECRET", ""),
@@ -108,6 +120,8 @@ def get_provider():
             api_base=os.getenv("ERST_API_BASE_URL", ""),
             cert_path=os.getenv("ERST_CERT_PATH"),
             key_path=os.getenv("ERST_KEY_PATH"),
+            basic_user=os.getenv("ERST_API_USER"),
+            basic_password=os.getenv("ERST_API_PASSWORD"),
         )
         _provider_instance = erst_provider
     elif provider_name == "fixture" or settings.provider == "fixtures":
@@ -133,14 +147,17 @@ def get_provider():
 def _check_provider():
     """Ensure provider is usable when not in dev"""
     import os
+
     app_env = os.getenv("APP_ENV", "dev").lower()
-    
+
     if app_env != "dev":
         prov = get_provider()
         can_ping = getattr(prov, "ping", lambda: False)()
         if not can_ping:
             provider_name = os.getenv("DATA_PROVIDER", "erst").lower()
-            raise RuntimeError(f"{provider_name.upper()} provider not reachable at startup. Check environment variables.")
+            raise RuntimeError(
+                f"{provider_name.upper()} provider not reachable at startup. Check environment variables."
+            )
 
 
 app = FastAPI(title="CVRGPT Server", version="0.1.0")
@@ -174,7 +191,7 @@ app.add_middleware(
 # Router will be included at the end
 
 # Mount MCP SSE at /mcp (conditional)
-if mcp is not None and hasattr(mcp, 'sse_app') and callable(getattr(mcp, 'sse_app', None)):
+if mcp is not None and hasattr(mcp, "sse_app") and callable(getattr(mcp, "sse_app", None)):
     app.mount(settings.mcp_mount_path, mcp.sse_app())
 
 
