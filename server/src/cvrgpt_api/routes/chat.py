@@ -33,8 +33,6 @@ def get_rate_limiter(times: int, seconds: int):
     return rate_limit_check
 
 
-
-
 router = APIRouter(prefix="/v1/chat", tags=["chat"])
 log = setup_logging()
 

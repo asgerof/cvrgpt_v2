@@ -125,7 +125,9 @@ class ERSTProvider(Provider):
             }
 
         async with httpx.AsyncClient(timeout=30.0, cert=cert) as client:
-            r = await client.post(index_url, headers=headers, auth=auth if auth else None, json=query)
+            r = await client.post(
+                index_url, headers=headers, auth=auth if auth else None, json=query
+            )
         r.raise_for_status()
         payload = r.json()
         hits = (payload.get("hits") or {}).get("hits") or []
@@ -178,7 +180,9 @@ class ERSTProvider(Provider):
         }
 
         async with httpx.AsyncClient(timeout=30.0, cert=cert) as client:
-            r = await client.post(index_url, headers=headers, auth=auth if auth else None, json=query)
+            r = await client.post(
+                index_url, headers=headers, auth=auth if auth else None, json=query
+            )
         r.raise_for_status()
         hits = (r.json().get("hits") or {}).get("hits") or []
         if not hits:

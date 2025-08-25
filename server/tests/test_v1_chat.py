@@ -3,16 +3,16 @@ from fastapi.testclient import TestClient
 
 
 # Configure environment before importing the app
-os.environ.setdefault("API_KEY", "test-key")
+os.environ["API_KEY"] = "test-secret"
 os.environ.setdefault("DATA_PROVIDER", "fixture")
 os.environ.setdefault("APP_ENV", "dev")
-os.environ.setdefault("CHAT_NLU", "llm")  # enforce LLM; tests expect 503 without key
+os.environ.setdefault("CHAT_NLU", "llm")  # enforce LLM
 
 from cvrgpt_api.api import app  # noqa: E402
 
 
 client = TestClient(app)
-HDR = {"X-API-Key": "test-key"}
+HDR = {"X-API-Key": "test-secret"}
 
 
 def test_v1_chat_requires_api_key():
@@ -30,9 +30,15 @@ def test_v1_chat_bankruptcies_requires_llm():
         ],
     }
     r = client.post("/v1/chat", headers=HDR, json=body)
-    assert r.status_code == 503
-    j = r.json()
-    assert "LLM NLU unavailable" in (j.get("detail") or "")
+    # If OpenAI API key is available, expect success; otherwise expect 503
+    if os.getenv("OPENAI_API_KEY"):
+        assert r.status_code == 200
+        j = r.json()
+        assert "blocks" in j
+    else:
+        assert r.status_code == 503
+        j = r.json()
+        assert "LLM NLU unavailable" in (j.get("detail") or "")
 
 
 def test_v1_chat_annual_result_requires_llm():
@@ -43,6 +49,12 @@ def test_v1_chat_annual_result_requires_llm():
         ],
     }
     r = client.post("/v1/chat", headers=HDR, json=body)
-    assert r.status_code == 503
-    j = r.json()
-    assert "LLM NLU unavailable" in (j.get("detail") or "")
+    # If OpenAI API key is available, expect success; otherwise expect 503
+    if os.getenv("OPENAI_API_KEY"):
+        assert r.status_code == 200
+        j = r.json()
+        assert "blocks" in j
+    else:
+        assert r.status_code == 503
+        j = r.json()
+        assert "LLM NLU unavailable" in (j.get("detail") or "")
